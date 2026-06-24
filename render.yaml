@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: job-prep-chatbot-tool-4
+    runtime: python
+    plan: free
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: uv run python demo_app.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: APP_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
