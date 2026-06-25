@@ -66,15 +66,25 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
 # ---------------------------------------------------------------------------
 # TTS 설정
 # ---------------------------------------------------------------------------
-# provider 우선순위: 기본은 azure 먼저 시도하고 실패하면 openai로 폴백한다.
-# TTS_PROVIDER=openai 로 두면 순서가 뒤집힌다.
-TTS_PROVIDER = os.getenv("TTS_PROVIDER", "azure").strip().lower()
+# provider 우선순위: 기본은 openai. 실패 시(키 없음 등) azure 로 폴백한다.
+# TTS_PROVIDER=azure 로 두면 순서가 뒤집힌다(Azure 한국 여성 음성을 쓰고 싶을 때).
+TTS_PROVIDER = os.getenv("TTS_PROVIDER", "openai").strip().lower()
 TTS_MAX_CHARS = 4000  # 입력 길이 안전 상한
 
 # --- OpenAI TTS ---
-OPENAI_TTS_MODEL = os.getenv("TTS_MODEL", "tts-1")  # tts-1 은 실재하는 OpenAI TTS 모델
-OPENAI_TTS_VOICE = os.getenv("TTS_VOICE", "alloy")
-OPENAI_VOICES = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
+# gpt-4o-mini-tts: 최신 모델. 한국어가 자연스럽고 instructions 로 말투를 지정할 수 있다.
+# (tts-1 / tts-1-hd 도 동작하지만 instructions 는 무시된다.)
+OPENAI_TTS_MODEL = os.getenv("TTS_MODEL", "gpt-4o-mini-tts")
+OPENAI_TTS_VOICE = os.getenv("TTS_VOICE", "nova")
+# 요청 SSML 의 softvoice(차분·부드러운 톤)를 instructions 로 구현. 빈 값이면 기본 말투.
+OPENAI_TTS_INSTRUCTIONS = os.getenv(
+    "OPENAI_TTS_INSTRUCTIONS",
+    "한국어로 차분하고 부드럽게, 친근한 상담원 말투로 또박또박 읽어 주세요.",
+)
+OPENAI_VOICES = {
+    "alloy", "ash", "ballad", "coral", "echo",
+    "fable", "nova", "onyx", "sage", "shimmer", "verse",
+}
 
 # --- Azure Speech TTS ---
 # 키 발급: Azure Portal > "Speech service" 리소스 생성 > 키와 위치(region).
@@ -273,12 +283,17 @@ def openai_tts(text: str, voice: str | None = None) -> bytes:
     from openai import OpenAI
 
     selected = voice if voice in OPENAI_VOICES else OPENAI_TTS_VOICE
+    kwargs: dict[str, object] = {
+        "model": OPENAI_TTS_MODEL,
+        "voice": selected,
+        "input": text[:TTS_MAX_CHARS],
+    }
+    # instructions(말투 지정)는 gpt-4o-mini-tts 계열만 지원. 구형 모델엔 넣지 않는다.
+    if OPENAI_TTS_INSTRUCTIONS and "gpt-4o" in OPENAI_TTS_MODEL:
+        kwargs["instructions"] = OPENAI_TTS_INSTRUCTIONS
+
     client = OpenAI()
-    with client.audio.speech.with_streaming_response.create(
-        model=OPENAI_TTS_MODEL,
-        voice=selected,
-        input=text[:TTS_MAX_CHARS],
-    ) as response:
+    with client.audio.speech.with_streaming_response.create(**kwargs) as response:
         return response.read()
 
 
