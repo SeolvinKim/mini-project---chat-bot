@@ -406,8 +406,8 @@ def start_session(
             message,
             "",
             "",
-            gr.update(visible=False),
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=False),
         )
 
@@ -430,8 +430,8 @@ def start_session(
             error,
             "",
             "",
-            gr.update(visible=False),
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=False),
         )
     session["items"].append(question)
@@ -442,7 +442,7 @@ def start_session(
         "답변을 입력한 뒤 제출해 주세요.",
         format_progress(session),
         "",
-        gr.update(visible=False),
+        gr.update(visible=True, interactive=False),
         gr.update(visible=True),
         gr.update(interactive=True),
     )
@@ -457,8 +457,8 @@ def submit_answer(answer: str, session: dict):
             "먼저 면접 세션을 시작해 주세요.",
             "",
             "",
-            gr.update(visible=False),
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=False),
         )
 
@@ -471,7 +471,7 @@ def submit_answer(answer: str, session: dict):
             "실제 면접처럼 최소 두 문장 정도로 답변해 주세요.",
             format_progress(session),
             "",
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
             gr.update(visible=True),
             gr.update(interactive=True),
         )
@@ -493,8 +493,8 @@ def submit_answer(answer: str, session: dict):
             "모든 질문에 답변했습니다. 아래 리포트를 확인해 주세요.",
             format_progress(session),
             format_report(session),
-            gr.update(visible=False),
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=False),
         )
 
@@ -510,7 +510,7 @@ def submit_answer(answer: str, session: dict):
         status,
         format_progress(session),
         feedback_text,
-        gr.update(visible=True),
+        gr.update(visible=True, interactive=True),
         gr.update(visible=True),
         gr.update(interactive=False),
     )
@@ -525,7 +525,7 @@ def next_question(session: dict):
             "먼저 면접 세션을 시작해 주세요.",
             format_progress(session or empty_session()),
             "",
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=False),
         )
 
@@ -538,7 +538,7 @@ def next_question(session: dict):
             "현재 질문에 먼저 답변해 주세요.",
             format_progress(session),
             "",
-            gr.update(visible=False),
+            gr.update(visible=True, interactive=False),
             gr.update(interactive=True),
         )
 
@@ -554,7 +554,7 @@ def next_question(session: dict):
                 error,
                 format_progress(session),
                 "",
-                gr.update(visible=True),
+                gr.update(visible=True, interactive=True),
                 gr.update(interactive=False),
             )
         session["items"].append(question)
@@ -566,7 +566,7 @@ def next_question(session: dict):
         "답변을 입력한 뒤 제출해 주세요.",
         format_progress(session),
         "",
-        gr.update(visible=False),
+        gr.update(visible=True, interactive=False),
         gr.update(interactive=True),
     )
 
@@ -737,7 +737,8 @@ with gr.Blocks(title=APP_TITLE) as demo:
                         )
                         next_btn = gr.Button(
                             "다음 질문",
-                            visible=False,
+                            visible=True,
+                            interactive=False,
                             elem_classes=["secondary3d"],
                         )
 
