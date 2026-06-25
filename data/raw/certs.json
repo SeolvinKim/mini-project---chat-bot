@@ -1,0 +1,728 @@
+{
+  "schema_version": 1,
+  "year": 2026,
+  "last_updated": "2026-06-24T17:26:41+09:00",
+  "collection_errors": [],
+  "certificates": [
+    {
+      "certificate_id": "invest_manager",
+      "certificate_name": "투자자산운용사",
+      "aliases": [
+        "투운사"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "증권",
+        "자산운용",
+        "PB",
+        "WM"
+      ],
+      "keywords": [
+        "투자",
+        "증권",
+        "펀드",
+        "자산운용",
+        "포트폴리오"
+      ],
+      "description": "집합투자재산과 투자일임재산을 운용하는 금융투자 전문 자격입니다.",
+      "source_name": "금융투자협회 자격시험센터",
+      "source_url": "https://license.kofia.or.kr/examInfo/examYearly.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제44회",
+          "application_start": "2025-12-22",
+          "application_end": "2025-12-26",
+          "exam_date": "2026-01-18",
+          "result_date": "2026-01-29"
+        },
+        {
+          "year": 2026,
+          "round": "제45회",
+          "application_start": "2026-04-13",
+          "application_end": "2026-04-17",
+          "exam_date": "2026-05-10",
+          "result_date": "2026-05-21"
+        },
+        {
+          "year": 2026,
+          "round": "제46회",
+          "application_start": "2026-07-27",
+          "application_end": "2026-07-31",
+          "exam_date": "2026-08-23",
+          "result_date": "2026-09-03"
+        },
+        {
+          "year": 2026,
+          "round": "제47회",
+          "application_start": "2026-10-12",
+          "application_end": "2026-10-16",
+          "exam_date": "2026-11-08",
+          "result_date": "2026-11-19"
+        }
+      ]
+    },
+    {
+      "certificate_id": "financial_analyst",
+      "certificate_name": "금융투자분석사",
+      "aliases": [
+        "금투분"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "애널리스트",
+        "리서치",
+        "투자분석"
+      ],
+      "keywords": [
+        "기업분석",
+        "산업분석",
+        "주식",
+        "리서치",
+        "투자"
+      ],
+      "description": "금융투자상품과 기업가치를 분석하는 직무와 관련된 자격입니다.",
+      "source_name": "금융투자협회 자격시험센터",
+      "source_url": "https://license.kofia.or.kr/examInfo/examYearly.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제24회",
+          "application_start": "2026-06-15",
+          "application_end": "2026-06-19",
+          "exam_date": "2026-07-12",
+          "result_date": "2026-07-23"
+        }
+      ]
+    },
+    {
+      "certificate_id": "financial_risk_manager",
+      "certificate_name": "재무위험관리사",
+      "aliases": [
+        "국내 FRM",
+        "재무위험"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "리스크관리",
+        "신용위험",
+        "시장위험"
+      ],
+      "keywords": [
+        "리스크",
+        "위험관리",
+        "신용",
+        "재무",
+        "시장위험"
+      ],
+      "description": "금융기관의 시장·신용·운영 위험을 관리하는 직무와 관련된 자격입니다.",
+      "source_name": "금융투자협회 자격시험센터",
+      "source_url": "https://license.kofia.or.kr/examInfo/examYearly.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제18회",
+          "application_start": "2026-08-18",
+          "application_end": "2026-08-21",
+          "exam_date": "2026-09-13",
+          "result_date": "2026-09-24"
+        }
+      ]
+    },
+    {
+      "certificate_id": "credit_analyst",
+      "certificate_name": "신용분석사",
+      "aliases": [],
+      "category": "금융",
+      "related_jobs": [
+        "은행 여신",
+        "기업신용",
+        "재무분석"
+      ],
+      "keywords": [
+        "은행",
+        "여신",
+        "대출",
+        "신용",
+        "재무제표"
+      ],
+      "description": "기업의 회계·재무 상태를 분석해 신용을 판단하는 자격입니다.",
+      "source_name": "한국금융연수원",
+      "source_url": "https://www.kbi.or.kr/platformWeb/Qual.do?cmd=openPage&pageName=qualTestScheduleList",
+      "exams": []
+    },
+    {
+      "certificate_id": "asset_manager_fp",
+      "certificate_name": "자산관리사(FP)",
+      "aliases": [
+        "은행 FP",
+        "FP"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "은행",
+        "PB",
+        "WM",
+        "금융영업"
+      ],
+      "keywords": [
+        "은행",
+        "자산관리",
+        "고객",
+        "상담",
+        "PB",
+        "WM"
+      ],
+      "description": "고객의 재무상태를 분석하고 종합자산관리 상담을 수행하는 자격입니다.",
+      "source_name": "한국금융연수원",
+      "source_url": "https://www.kbi.or.kr/platformWeb/Qual.do?cmd=openPage&pageName=qualTestScheduleList",
+      "exams": []
+    },
+    {
+      "certificate_id": "foreign_exchange",
+      "certificate_name": "외환전문역",
+      "aliases": [
+        "외전역"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "은행 외환",
+        "국제금융",
+        "무역금융"
+      ],
+      "keywords": [
+        "외환",
+        "국제금융",
+        "무역",
+        "환율",
+        "은행"
+      ],
+      "description": "외환 거래와 외국환 법규 실무를 다루는 은행권 자격입니다.",
+      "source_name": "한국금융연수원",
+      "source_url": "https://www.kbi.or.kr/platformWeb/Qual.do?cmd=openPage&pageName=qualTestScheduleList",
+      "exams": []
+    },
+    {
+      "certificate_id": "bank_teller",
+      "certificate_name": "은행텔러",
+      "aliases": [
+        "텔러"
+      ],
+      "category": "금융",
+      "related_jobs": [
+        "은행 창구",
+        "수신",
+        "금융서비스"
+      ],
+      "keywords": [
+        "은행",
+        "창구",
+        "고객",
+        "수신",
+        "금융영업"
+      ],
+      "description": "은행 창구 업무와 금융상품 상담의 기초 역량을 다루는 자격입니다.",
+      "source_name": "한국금융연수원",
+      "source_url": "https://www.kbi.or.kr/platformWeb/Qual.do?cmd=openPage&pageName=qualTestScheduleList",
+      "exams": []
+    },
+    {
+      "certificate_id": "financial_dt",
+      "certificate_name": "KBI 금융DT 테스트",
+      "aliases": [
+        "금융DT",
+        "KBI DT"
+      ],
+      "category": "디지털",
+      "related_jobs": [
+        "디지털 금융",
+        "핀테크",
+        "은행 IT"
+      ],
+      "keywords": [
+        "핀테크",
+        "디지털",
+        "은행 IT",
+        "데이터",
+        "플랫폼"
+      ],
+      "description": "금융의 디지털 전환과 데이터 활용 역량을 확인하는 평가입니다.",
+      "source_name": "한국금융연수원",
+      "source_url": "https://www.kbi.or.kr/platformWeb/Qual.do?cmd=openPage&pageName=qualTestScheduleList",
+      "exams": []
+    },
+    {
+      "certificate_id": "adsp",
+      "certificate_name": "데이터분석 준전문가",
+      "aliases": [
+        "ADsP",
+        "데이터분석준전문가"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 분석",
+        "BI",
+        "데이터 기획"
+      ],
+      "keywords": [
+        "데이터",
+        "분석",
+        "통계",
+        "BI",
+        "기획"
+      ],
+      "description": "데이터 이해와 분석 기획·방법론의 기초 역량을 확인하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제48회",
+          "application_start": "2026-01-05",
+          "application_end": "2026-01-09",
+          "exam_date": "2026-02-07",
+          "result_date": "2026-03-06"
+        },
+        {
+          "year": 2026,
+          "round": "제49회",
+          "application_start": "2026-04-13",
+          "application_end": "2026-04-17",
+          "exam_date": "2026-05-17",
+          "result_date": "2026-06-05"
+        },
+        {
+          "year": 2026,
+          "round": "제50회",
+          "application_start": "2026-07-06",
+          "application_end": "2026-07-10",
+          "exam_date": "2026-08-08",
+          "result_date": "2026-08-28"
+        },
+        {
+          "year": 2026,
+          "round": "제51회",
+          "application_start": "2026-09-28",
+          "application_end": "2026-10-02",
+          "exam_date": "2026-10-31",
+          "result_date": "2026-11-20"
+        }
+      ]
+    },
+    {
+      "certificate_id": "adp",
+      "certificate_name": "데이터분석 전문가",
+      "aliases": [
+        "ADP",
+        "데이터분석전문가"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 사이언티스트",
+        "고급 데이터 분석"
+      ],
+      "keywords": [
+        "데이터",
+        "분석",
+        "통계",
+        "머신러닝",
+        "사이언스"
+      ],
+      "description": "데이터 분석 전 과정의 고급 전문 역량을 평가하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제36회 필기",
+          "application_start": "2026-01-05",
+          "application_end": "2026-01-09",
+          "exam_date": "2026-02-07",
+          "result_date": "2026-03-06"
+        },
+        {
+          "year": 2026,
+          "round": "제36회 실기",
+          "application_start": "2026-03-30",
+          "application_end": "2026-04-03",
+          "exam_date": "2026-05-02",
+          "result_date": "2026-05-29"
+        },
+        {
+          "year": 2026,
+          "round": "제37회 필기",
+          "application_start": "2026-07-06",
+          "application_end": "2026-07-10",
+          "exam_date": "2026-08-08",
+          "result_date": "2026-09-04"
+        },
+        {
+          "year": 2026,
+          "round": "제37회 실기",
+          "application_start": "2026-09-14",
+          "application_end": "2026-09-18",
+          "exam_date": "2026-10-17",
+          "result_date": "2026-11-13"
+        }
+      ]
+    },
+    {
+      "certificate_id": "sqld",
+      "certificate_name": "SQL 개발자",
+      "aliases": [
+        "SQLD",
+        "SQL 디벨로퍼"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 분석",
+        "데이터 엔지니어",
+        "DB 개발"
+      ],
+      "keywords": [
+        "SQL",
+        "데이터",
+        "DB",
+        "데이터베이스",
+        "분석"
+      ],
+      "description": "데이터 모델과 SQL 활용 능력을 확인하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제60회",
+          "application_start": "2026-02-02",
+          "application_end": "2026-02-06",
+          "exam_date": "2026-03-07",
+          "result_date": "2026-03-27"
+        },
+        {
+          "year": 2026,
+          "round": "제61회",
+          "application_start": "2026-04-27",
+          "application_end": "2026-05-01",
+          "exam_date": "2026-05-31",
+          "result_date": "2026-06-19"
+        },
+        {
+          "year": 2026,
+          "round": "제62회",
+          "application_start": "2026-07-20",
+          "application_end": "2026-07-24",
+          "exam_date": "2026-08-22",
+          "result_date": "2026-09-11"
+        },
+        {
+          "year": 2026,
+          "round": "제63회",
+          "application_start": "2026-10-12",
+          "application_end": "2026-10-16",
+          "exam_date": "2026-11-14",
+          "result_date": "2026-12-04"
+        }
+      ]
+    },
+    {
+      "certificate_id": "sqlp",
+      "certificate_name": "SQL 전문가",
+      "aliases": [
+        "SQLP"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "DBA",
+        "데이터 아키텍트",
+        "DB 성능"
+      ],
+      "keywords": [
+        "SQL",
+        "DBA",
+        "데이터베이스",
+        "튜닝",
+        "성능"
+      ],
+      "description": "고급 SQL과 데이터베이스 성능 최적화 역량을 평가하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제54회",
+          "application_start": "2026-02-02",
+          "application_end": "2026-02-06",
+          "exam_date": "2026-03-07",
+          "result_date": "2026-04-03"
+        },
+        {
+          "year": 2026,
+          "round": "제55회",
+          "application_start": "2026-07-20",
+          "application_end": "2026-07-24",
+          "exam_date": "2026-08-22",
+          "result_date": "2026-09-18"
+        }
+      ]
+    },
+    {
+      "certificate_id": "bigdata_engineer",
+      "certificate_name": "빅데이터분석기사",
+      "aliases": [
+        "빅분기"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 분석",
+        "데이터 사이언스",
+        "빅데이터"
+      ],
+      "keywords": [
+        "빅데이터",
+        "데이터",
+        "분석",
+        "통계",
+        "머신러닝"
+      ],
+      "description": "빅데이터 분석 기획부터 결과 해석까지 평가하는 국가기술자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제12회 필기",
+          "application_start": "2026-03-03",
+          "application_end": "2026-03-09",
+          "exam_date": "2026-04-04",
+          "result_date": "2026-04-24"
+        },
+        {
+          "year": 2026,
+          "round": "제12회 실기",
+          "application_start": "2026-05-18",
+          "application_end": "2026-05-22",
+          "exam_date": "2026-06-20",
+          "result_date": "2026-07-10"
+        },
+        {
+          "year": 2026,
+          "round": "제13회 필기",
+          "application_start": "2026-08-03",
+          "application_end": "2026-08-07",
+          "exam_date": "2026-09-05",
+          "result_date": "2026-09-23"
+        },
+        {
+          "year": 2026,
+          "round": "제13회 실기",
+          "application_start": "2026-10-26",
+          "application_end": "2026-10-30",
+          "exam_date": "2026-11-28",
+          "result_date": "2026-12-18"
+        }
+      ]
+    },
+    {
+      "certificate_id": "dasp",
+      "certificate_name": "데이터아키텍처 준전문가",
+      "aliases": [
+        "DAsP"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 모델러",
+        "DB 설계",
+        "데이터 엔지니어"
+      ],
+      "keywords": [
+        "데이터아키텍처",
+        "모델링",
+        "DB",
+        "설계",
+        "데이터"
+      ],
+      "description": "데이터 요건 분석과 모델링의 기초 역량을 확인하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제60회",
+          "application_start": "2026-02-09",
+          "application_end": "2026-02-13",
+          "exam_date": "2026-03-21",
+          "result_date": "2026-04-10"
+        },
+        {
+          "year": 2026,
+          "round": "제61회",
+          "application_start": "2026-08-14",
+          "application_end": "2026-08-21",
+          "exam_date": "2026-09-19",
+          "result_date": "2026-10-08"
+        }
+      ]
+    },
+    {
+      "certificate_id": "dap",
+      "certificate_name": "데이터아키텍처 전문가",
+      "aliases": [
+        "DAP"
+      ],
+      "category": "데이터",
+      "related_jobs": [
+        "데이터 아키텍트",
+        "데이터 모델러"
+      ],
+      "keywords": [
+        "데이터아키텍처",
+        "모델링",
+        "DB",
+        "설계",
+        "거버넌스"
+      ],
+      "description": "전사 데이터 아키텍처와 모델링 전문 역량을 평가하는 자격입니다.",
+      "source_name": "한국데이터산업진흥원",
+      "source_url": "https://www.dataq.or.kr/www/accept/schedule.do",
+      "exams": [
+        {
+          "year": 2026,
+          "round": "제65회",
+          "application_start": "2026-02-09",
+          "application_end": "2026-02-13",
+          "exam_date": "2026-03-21",
+          "result_date": "2026-04-17"
+        },
+        {
+          "year": 2026,
+          "round": "제66회",
+          "application_start": "2026-08-14",
+          "application_end": "2026-08-21",
+          "exam_date": "2026-09-19",
+          "result_date": "2026-10-16"
+        }
+      ]
+    },
+    {
+      "certificate_id": "information_processing_engineer",
+      "certificate_name": "정보처리기사",
+      "aliases": [
+        "정처기"
+      ],
+      "category": "IT",
+      "related_jobs": [
+        "백엔드 개발",
+        "시스템",
+        "금융 IT"
+      ],
+      "keywords": [
+        "개발",
+        "백엔드",
+        "소프트웨어",
+        "시스템",
+        "IT"
+      ],
+      "description": "소프트웨어 설계·개발·데이터베이스·정보시스템 역량을 다루는 국가기술자격입니다.",
+      "source_name": "Q-Net",
+      "source_url": "https://www.q-net.or.kr/crf021.do?id=crf02101&scheType=03",
+      "exams": []
+    },
+    {
+      "certificate_id": "linux_master",
+      "certificate_name": "리눅스마스터",
+      "aliases": [
+        "리마"
+      ],
+      "category": "IT",
+      "related_jobs": [
+        "서버",
+        "인프라",
+        "클라우드"
+      ],
+      "keywords": [
+        "리눅스",
+        "서버",
+        "인프라",
+        "클라우드",
+        "시스템"
+      ],
+      "description": "리눅스 기반 시스템의 운영과 관리 역량을 평가하는 자격입니다.",
+      "source_name": "KAIT 자격검정",
+      "source_url": "https://www.ihd.or.kr/guidecert1.do",
+      "exams": []
+    },
+    {
+      "certificate_id": "network_manager",
+      "certificate_name": "네트워크관리사",
+      "aliases": [
+        "네관사"
+      ],
+      "category": "IT",
+      "related_jobs": [
+        "네트워크",
+        "인프라",
+        "시스템 운영"
+      ],
+      "keywords": [
+        "네트워크",
+        "인프라",
+        "서버",
+        "통신",
+        "보안"
+      ],
+      "description": "네트워크 구축과 유지관리 능력을 평가하는 자격입니다.",
+      "source_name": "한국정보통신자격협회",
+      "source_url": "https://www.icqa.or.kr/cn/page/network",
+      "exams": []
+    },
+    {
+      "certificate_id": "computer_literacy",
+      "certificate_name": "컴퓨터활용능력",
+      "aliases": [
+        "컴활"
+      ],
+      "category": "사무·ERP",
+      "related_jobs": [
+        "사무",
+        "경영지원",
+        "데이터 처리"
+      ],
+      "keywords": [
+        "엑셀",
+        "스프레드시트",
+        "사무",
+        "행정",
+        "경영지원"
+      ],
+      "description": "스프레드시트와 데이터베이스 활용 능력을 평가하는 국가기술자격입니다.",
+      "source_name": "대한상공회의소 자격평가사업단",
+      "source_url": "https://license.korcham.net/indexLoad.html",
+      "exams": []
+    },
+    {
+      "certificate_id": "erp_manager",
+      "certificate_name": "ERP정보관리사",
+      "aliases": [
+        "ERP"
+      ],
+      "category": "사무·ERP",
+      "related_jobs": [
+        "회계",
+        "인사",
+        "생산",
+        "물류"
+      ],
+      "keywords": [
+        "ERP",
+        "회계",
+        "인사",
+        "생산",
+        "물류"
+      ],
+      "description": "기업의 회계·인사·생산·물류 ERP 활용 역량을 평가하는 자격입니다.",
+      "source_name": "KPC 자격",
+      "source_url": "https://license.kpc.or.kr/nasec/rceptexmncnfirm/selectExprschdul.do",
+      "exams": []
+    }
+  ]
+}
