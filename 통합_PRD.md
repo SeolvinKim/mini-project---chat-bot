@@ -12,24 +12,16 @@
 | 프로젝트명 | 취업준비 도움 챗봇 |
 | 대상 사용자 | 취업을 준비하는 20~30대 |
 | 개발 기간 | 2026년 6월 24일~25일 |
-| UI 프레임워크 | Gradio |
-| 언어·환경 | Python, `uv` |
-| LLM | OpenAI GPT |
+| UI 프레임워크 | Gradio (독립 실행) / vtuber 프론트엔드 (VRM 캐릭터 + 채팅 패널) |
+| 백엔드 서버 | FastAPI (`app/api.py`, 포트 8000) |
+| 언어·환경 | Python, `uv` / TypeScript (vtuber) |
+| LLM | OpenAI GPT (`gpt-4o-mini` 기본, `CHAT_MODEL` 환경변수로 변경 가능) |
 | LLM 프레임워크 | LangChain |
 | 벡터DB | Chroma 로컬 파일 |
+| TTS | Azure Speech (현재 미사용) → OpenAI tts-1 (폴백) |
 | 배포 | Render Web Service |
 | 형상 관리 | GitHub |
 | 버전 | MVP v1.0 |
-
-### 참조 문서
-
-- `PRD_1.md`: 금융권 직무 추천 Tool
-- `PRD_2.md`: 자소서 피드백 Tool
-- `PRD_3.md`: 면접 질문 생성 Tool
-- `PRD_4.md`: 자격증 추천 및 시험 일정 안내 Tool
-- `handoff`: 팀 공통 구현 계약
-
----
 
 ## 1. 제품 개요
 
@@ -119,18 +111,20 @@
 네 개 Tool은 온보딩에서 생성한 하나의 `UserProfile`을 읽기 전용으로 공유한다.
 
 ```python
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class UserProfile(BaseModel):
+    session_id: str = ""
     education: str = ""
     target_job: str = ""
-    skills: list[str] = []
-    experiences: list[str] = []
-    certs: list[str] = []
+    skills: list[str] = Field(default_factory=list)
+    experiences: list[str] = Field(default_factory=list)
+    certs: list[str] = Field(default_factory=list)
 ```
 
 | 필드 | 설명 | 활용 Tool |
 |---|---|---|
+| `session_id` | 브라우저 세션 고유 ID — Tool 상태 키잉에 사용 | 자격증 추천 (추천 이력 격리) |
 | `education` | 학력·전공 | 직무 추천, 자소서, 면접 |
 | `target_job` | 희망 직무 | 네 개 Tool 전체 |
 | `skills` | 보유 기술 | 직무 추천, 자소서, 면접, 자격증 |
@@ -163,10 +157,10 @@ def run(profile: UserProfile, user_input: str) -> str:
 
 | 기능 | 파일 | `NAME` | RAG | Chroma 컬렉션 |
 |---|---|---|:---:|---|
-| 직무 추천 | `tools/recommend_job.py` | `직무 추천` | 사용 | `jobs` |
+| 직무 추천 | `tools/recommend_job.py` | `직무 추천` | 미사용 | 없음 (오프라인 규칙 기반) |
 | 자소서 피드백 | `tools/cover_letter.py` | `자소서 피드백` | 미사용 | 없음 |
-| 면접 질문 생성 | `tools/interview.py` | `면접 질문 생성` | 사용 | `interview_qs` |
-| 자격증 추천 | `tools/spec_recommend.py` | `자격증 추천` | 사용 | `certs` |
+| 면접 질문 | `tools/interview.py` | `면접 질문` | 미사용 | 없음 |
+| 자격증 추천 | `tools/spec_recommend.py` | `자격증 추천` | 선택적 사용 | `certs` (없으면 JSON 기반으로 폴백) |
 
 ### 반환 규칙
 
@@ -208,7 +202,9 @@ def run(profile: UserProfile, user_input: str) -> str:
 - 의도가 불명확하면 임의 실행하지 않고 원하는 기능을 다시 질문한다.
 - 한 Tool의 대화 중 다른 기능을 명시하면 해당 Tool로 전환한다.
 
-### 5.3 Gradio 화면 구성
+### 5.3 화면 구성
+
+#### Gradio UI (`app/main.py`)
 
 | 영역 | 구성 요소 | 역할 |
 |---|---|---|
@@ -220,6 +216,24 @@ def run(profile: UserProfile, user_input: str) -> str:
 | 빠른 질문 | Tool별 예시 버튼 | 초기 사용 지원 |
 | 상태 영역 | 선택 Tool, 처리 중, 오류 | 현재 상태 안내 |
 | 하단 | 데이터·AI 안내 | 결과 검토 및 공식 확인 고지 |
+
+#### vtuber 프론트엔드 (`vtuber/`)
+
+| 영역 | 구성 요소 | 역할 |
+|---|---|---|
+| 왼쪽 `#stage` | Three.js VRM 캐릭터 캔버스 | 3D 캐릭터 표시, 립싱크, 아이들 모션 |
+| 오른쪽 `#chat-panel` (360px) | 채팅 UI | 메시지 입력·출력, Tool 선택, 음성 선택 |
+| 링크 배경 | `#link-frame` iframe | 봇 응답에 URL이 있으면 캔버스 뒤에 표시 |
+
+#### FastAPI HTTP API (`app/api.py`, 포트 8000)
+
+| 엔드포인트 | 역할 |
+|---|---|
+| `GET /api/health` | 서버 상태 확인 |
+| `GET /api/tools` | Tool 목록 (key, label, icon) |
+| `GET /api/voices` | TTS 음성 후보 목록 |
+| `POST /api/chat` | 메시지 → Tool 라우팅 → 텍스트 응답 |
+| `POST /api/tts` | 텍스트 → mp3 음성 합성 |
 
 ### 5.4 대화 상태
 
@@ -234,9 +248,10 @@ def run(profile: UserProfile, user_input: str) -> str:
 
 ### 6.1 기능 요구사항
 
-- 자연어 프로필을 바탕으로 금융권 직무 7개 중 상위 3개를 추천한다.
+- 자연어 프로필을 바탕으로 금융권 직무 20개 중 상위 3개를 추천한다.
 - 각 결과에 추천 이유, 필요한 역량과 준비 방향을 제공한다.
 - 입력 정보가 부족하면 추가 질문을 반환한다.
+- OpenAI API 없이 오프라인 규칙 기반으로 동작한다.
 
 ### 6.2 입력값
 
@@ -272,6 +287,8 @@ def run(profile: UserProfile, user_input: str) -> str:
 
 ### 6.4 추천 직무 범위
 
+#### 은행·기본 금융
+
 | ID | 추천 직무 | 주요 설명 |
 |---|---|---|
 | `finance_data_analyst` | 금융 데이터 분석가 | 고객·거래·상품·리스크 데이터 분석 |
@@ -282,6 +299,34 @@ def run(profile: UserProfile, user_input: str) -> str:
 | `research_investment` | 리서치/투자분석 | 경제·산업·기업 분석과 투자 자료 작성 |
 | `compliance_internal_control` | 컴플라이언스/내부통제 | 법규·내부 규정·사고 예방 체계 점검 |
 
+#### 증권사
+
+| ID | 추천 직무 | 주요 설명 |
+|---|---|---|
+| `investment_banking` | 증권사 IB | IPO·M&A·ECM·DCM·PF 등 기업 자금조달 지원 |
+| `sales_trading` | 증권사 S&T/트레이딩 | 주식·채권·파생상품 매매 및 운용 전략 |
+| `institutional_sales` | 증권사 기관영업 | 연기금·운용사·법인 대상 B2B 리서치·상품 영업 |
+| `structured_products` | 증권사 금융상품/파생 구조화 | ELS·DLS 등 투자상품 구조·수익 조건 설계 |
+
+#### 카드사
+
+| ID | 추천 직무 | 주요 설명 |
+|---|---|---|
+| `card_product_planning` | 카드 상품기획 | 신용·체크카드 혜택·타깃·수익 구조 기획 |
+| `card_marketing_crm` | 카드 마케팅/CRM | 소비 데이터 기반 캠페인·이용률 마케팅 전략 |
+| `card_credit_strategy` | 카드 신용/리스크 전략 | 발급·한도·연체·부정사용 데이터 리스크 관리 |
+| `merchant_payment_partnership` | 가맹점/결제 제휴 | PG·간편결제·플랫폼과 결제 이용처 제휴 확대 |
+
+#### 보험사
+
+| ID | 추천 직무 | 주요 설명 |
+|---|---|---|
+| `insurance_product_actuary` | 보험 상품개발/계리 | 보험료·보장 구조·손해율·준비금 계산·설계 |
+| `insurance_underwriting` | 보험 언더라이팅/UW | 가입자 위험 심사 및 인수 조건 판단 |
+| `insurance_claims` | 보험 보상/손해사정 | 약관·사실관계 확인 후 보험금 지급 판단 |
+| `insurance_asset_management` | 보험사 자산운용/ALM | 장기 부채 고려한 채권·대체투자 자산 운용 |
+| `insurance_digital_service` | 보험 디지털 서비스 기획 | 보험 앱·청구·헬스케어 디지털 경험 개선 |
+
 ### 6.5 추천 로직
 
 - 데이터·SQL·Python → 금융 데이터 분석, 리스크, 리서치 우선
@@ -290,6 +335,9 @@ def run(profile: UserProfile, user_input: str) -> str:
 - 플랫폼·앱·핀테크·UX → 금융 플랫폼 기획 우선
 - 리스크·신용·대출 → 리스크 관리 우선
 - 규정·법·감사 → 컴플라이언스 우선
+- 증권·IB·IPO·트레이딩·채권·파생·구조화 → 증권사 직무 우선
+- 카드·결제·가맹점·한도·마케팅 → 카드사 직무 우선
+- 보험·계리·언더라이팅·보상·약관 → 보험사 직무 우선
 
 사용자 입력을 정규화하고 전공, 경험, 기술, 관심 분야와 업무 선호를 점수화해 상위 3개를 선택한다.
 
@@ -386,6 +434,10 @@ def run(profile: UserProfile, user_input: str) -> str:
 - 질문 유형 5개 중 입력에 적합한 유형을 선택한다.
 - 각 질문에 질문 의도, 평가 포인트와 답변 가이드를 제공한다.
 - 사용자가 난이도 또는 압박 질문을 요청할 수 있게 한다.
+- `[연습모드]` 접두어: 질문·의도·평가 포인트·답변 가이드 전체 제공.
+- `[실전모드]` 접두어: 가이드 없이 질문만 제공 (실제 면접 연습).
+- `1번 답변: [내용]` 또는 `답변: [내용]` 입력 시 STAR 구조·구체성·직무 연관성 기준으로 답변 피드백 반환.
+- OpenAI API 키 없으면 규칙 기반 폴백으로 직무 도메인 추정 질문 3개를 생성한다.
 
 ### 8.2 입력값
 
@@ -437,11 +489,7 @@ def run(profile: UserProfile, user_input: str) -> str:
 - 가치관·협업·태도 → 인성 질문 우선
 - 고난이도·압박 요청 → 압박 질문 우선
 
-후속 답변 평가 기능을 연결하는 경우 직전 답변 점수에 따라 난이도를 조절한다.
-
-- 80점 이상: 난이도 상승
-- 60~79점: 난이도 유지
-- 59점 이하: 난이도 하향
+후속 답변은 `1번 답변: [내용]` 형식으로 입력하면 STAR 구조·구체성·직무 연관성 기준으로 강점과 개선 포인트를 반환한다.
 
 ### 8.6 부족한 입력
 
@@ -459,12 +507,15 @@ def run(profile: UserProfile, user_input: str) -> str:
 ### 9.1 기능 요구사항
 
 - 희망 직무, 관심 분야 또는 자격증명을 입력하면 추천이나 일정이 출력된다.
-- 금융·데이터·IT·디지털 분야 후보 중 상위 3개를 추천한다.
+- 금융·데이터·IT·디지털·어학 분야 후보 중 상위 3개를 추천한다.
 - 추천 결과에는 자격증명, 추천 이유와 관련 직무를 포함한다.
 - 일정에는 상태, 회차, 접수 기간, 시험일, 발표일, 기준일과 출처를 포함한다.
 - 약칭을 정식 명칭으로 변환한다.
 - 올해 예정 시험과 종료 시험을 구분한다.
+- `가장 가까운`, `다음 시험` 표현 시 가장 가까운 예정 회차 한 건만 반환한다.
 - 일정이 없으면 `아직 공시되지 않음`으로 표시한다.
+- 추천 이력을 `session_id` 기준으로 세션별로 격리한다.
+- `더 추천해줘` 입력 시 이미 추천한 자격증을 제외하고 추가 추천한다.
 
 ### 9.2 입력값
 
@@ -519,6 +570,7 @@ def run(profile: UserProfile, user_input: str) -> str:
 - 데이터: ADsP, ADP, SQLD, SQLP, 빅데이터분석기사, DAsP, DAP
 - IT·디지털: 정보처리기사, 리눅스마스터, 네트워크관리사
 - 사무·ERP: 컴퓨터활용능력, ERP정보관리사
+- 어학: TOEIC, OPIc, TOEIC Speaking, JLPT, HSK, DELF, DELE, Goethe-Zertifikat (`data/raw/language_tests.json` 별도 관리)
 
 ### 9.5 추천 로직
 
@@ -646,28 +698,11 @@ def run(profile: UserProfile, user_input: str) -> str:
 
 | 영역 | 소유자 |
 |---|---|
-| `core/`, `app/main.py` | 통합자 |
-| `tools/recommend_job.py`, `ingest/jobs/` | 기능 1 담당자 |
-| `tools/cover_letter.py` | 기능 2 담당자 |
-| `tools/interview.py`, `ingest/interview/` | 기능 3 담당자 |
-| `tools/spec_recommend.py`, `ingest/certs/` | 기능 4 담당자 |
-
-### 12.2 브랜치
-
-| 브랜치 | 용도 |
-|---|---|
-| `main` | 발표·Render 배포 |
-| `develop` | 팀 통합 테스트 |
-| `feature/job-recommend` | 기능 1 |
-| `feature/cover-letter` | 기능 2 |
-| `feature/interview` | 기능 3 |
-| `feature/cert-recommend` | 기능 4 |
-
-- 기능 브랜치에서 `develop`으로 Pull Request를 생성한다.
-- 통합 검증 후 `main`으로 병합한다.
-- API 키와 `.env`는 커밋하지 않는다.
-- 다른 담당자의 Tool과 컬렉션을 수정하지 않는다.
-- 공통 계약 변경은 팀 합의 후 통합자가 반영한다.
+| `core/`, `app/main.py` | 이재용 |
+| `tools/recommend_job.py`, `ingest/jobs/` | 강소정 |
+| `tools/cover_letter.py` | 이재용 |
+| `tools/interview.py`, `ingest/interview/` | 염지유 |
+| `tools/spec_recommend.py`, `ingest/certs/` | 김설빈 |
 
 ---
 
@@ -681,7 +716,8 @@ def run(profile: UserProfile, user_input: str) -> str:
 | 연결 저장소 | GitHub 프로젝트 저장소 |
 | 배포 브랜치 | `main` |
 | Build Command | `uv sync --frozen` |
-| Start Command | `uv run python app/main.py` |
+| Start Command (Gradio) | `uv run python app/main.py` |
+| Start Command (FastAPI) | `uv run uvicorn app.api:app --host 0.0.0.0 --port 8000` |
 | Host | `0.0.0.0` |
 | Port | Render의 `PORT` 환경변수 |
 
@@ -696,7 +732,17 @@ demo.launch(server_name="0.0.0.0", server_port=port)
 
 | 변수 | 설명 |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI API 인증 |
+| `OPENAI_API_KEY` | OpenAI Chat·TTS 인증 |
+| `CHAT_MODEL` | LLM 모델 ID (기본 `gpt-4o-mini`) |
+| `TTS_PROVIDER` | TTS 우선 순위: `azure`(기본) 또는 `openai` |
+| `TTS_MODEL` | OpenAI TTS 모델 (기본 `tts-1`) |
+| `TTS_VOICE` | OpenAI TTS 음성 (기본 `alloy`) |
+| `AZURE_SPEECH_KEY` | Azure Speech 서비스 키 |
+| `AZURE_SPEECH_REGION` | Azure Speech 리전 (기본 `koreacentral`) |
+| `AZURE_TTS_VOICE` | Azure TTS 음성 (기본 `ko-KR-SunHiNeural`) |
+| `AZURE_TTS_RATE` | Azure TTS 말속도 (기본 `-12%`) |
+| `AZURE_TTS_PITCH` | Azure TTS 음높이 (기본 `-8%`) |
+| `AZURE_TTS_STYLE` | Azure TTS 스타일 (미지원 음성 적용 시 합성 실패 — 기본 비활성) |
 | `PORT` | Render 제공 포트 |
 | `APP_ENV` | 개발·운영 환경 구분 |
 | `LOG_LEVEL` | 로그 수준 |
@@ -775,15 +821,17 @@ demo.launch(server_name="0.0.0.0", server_port=port)
 
 ## 17. 오픈 이슈
 
-- [x] 최종 UI 프레임워크: Gradio
+- [x] 최종 UI 프레임워크: Gradio + vtuber 프론트엔드 병행
 - [x] 기능 수: 4개
-- [x] 기능 4 범위: 자격증만 지원
+- [x] 기능 4 범위: 자격증·어학시험 지원
 - [x] 배포: Render
 - [x] 공통 Tool 반환 형식: 문자열
-- [ ] `handoff`의 Streamlit 표기를 Gradio로 수정
-- [ ] 순수 Gradio 실행 또는 FastAPI 마운트 방식 결정
-- [ ] 기능 자동 라우팅을 LLM으로 처리할지 키워드 우선으로 처리할지 결정
-- [ ] 면접 답변 평가와 난이도 조절을 MVP에 포함할지 결정
+- [x] `handoff`의 Streamlit 표기를 Gradio로 수정
+- [x] 순수 Gradio 실행 또는 FastAPI 마운트 방식 결정: FastAPI 독립 실행 (`app/api.py`)
+- [x] 기능 자동 라우팅: 키워드 우선 분류, 미분류 시 GPT 일반 대화 처리
+- [x] 면접 답변 평가 MVP 포함: `1번 답변: [내용]` 입력 시 STAR 기준 피드백 제공
+- [x] 기능 1 범위 확대: 금융권 20개 직무 (은행·증권·카드·보험 분야 포함)
 - [ ] `chroma_db/`를 Git에 포함할지 배포 아티팩트로 별도 제공할지 결정
-- [ ] 기능 1의 범위를 금융권 7개 직무로 유지할지 IT 직무까지 확장할지 결정
 - [ ] 공통 UI 디자인과 빠른 질문 문구를 최종 확정
+- [ ] E2E TTS 테스트 (`AZURE_SPEECH_KEY` / `OPENAI_API_KEY` 세팅 후 브라우저 확인)
+- [ ] Render 배포 및 공개 URL 검증
