@@ -4,6 +4,7 @@ import importlib
 import os
 import re
 import sys
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
@@ -50,6 +51,7 @@ def _split(value: str) -> list[str]:
 
 def _profile_from_state(state: dict[str, object]) -> UserProfile:
     return UserProfile(
+        session_id=str(state.get("session_id", "")),
         education=str(state.get("education", "")),
         target_job=str(state.get("target_job", "")),
         skills=list(state.get("skills", [])),
@@ -72,8 +74,13 @@ def enter_chat(
     skills: str,
     experiences: str,
     certs: str,
+    request: gr.Request | None = None,
 ) -> tuple[dict[str, object], object, object, str, str]:
+    # session_id는 Gradio 세션(브라우저 연결)별로 고유해야 사용자 간 Tool 상태가
+    # 섞이지 않는다. request.session_hash가 표준 식별자이며, 없을 때만 uuid로 폴백.
+    session_id = (request.session_hash if request and request.session_hash else None) or uuid.uuid4().hex
     profile = {
+        "session_id": session_id,
         "education": (education or "").strip(),
         "target_job": (target_job or "").strip(),
         "skills": _split(skills),

@@ -24,6 +24,21 @@ Gradio 기반 공통 애플리케이션 뼈대입니다. 프로필 온보딩 후
 
 각 파일은 `NAME`과 `run(profile, user_input) -> str`을 제공합니다. 아직 병합되지 않은 Tool은 화면에서 준비 중으로 안내됩니다.
 
+### Tool 작성 계약 (중요)
+
+`run`이 받는 `profile`(`core.schema.UserProfile`)에는 **`session_id`** 필드가 있습니다.
+`app/main.py`가 Gradio 세션 해시를 주입한 값으로, **사용자(브라우저 세션)마다 고유**합니다.
+
+- Tool이 사용자별 상태(추천 이력, 대화 단계 등)를 모듈 전역에 보관한다면 **반드시 `profile.session_id`로 키를 잡으세요.**
+- 프로필 *내용*(학력·직무 등)으로 키를 잡으면 **동일 프로필을 입력한 다른 사용자끼리 상태가 충돌**합니다.
+- 예시: `tools/spec_recommend.py`의 `_profile_key()` — `session_id`가 있으면 `session:<id>`를 키로 사용.
+
+```python
+# 사용자별 상태가 필요할 때
+key = profile.session_id or "_anon"   # 폴백
+STATE[key] = ...
+```
+
 ## 실행
 
 ```powershell
