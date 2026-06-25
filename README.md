@@ -64,9 +64,16 @@ uv run python app/main.py
 
 ## Render
 
-- Build: `pip install uv && uv sync --frozen`
-- Start: `uv run python app/main.py`
-- 환경변수: `OPENAI_API_KEY`
+`render.yaml` 하나로 3개 서비스를 배포합니다(Render 대시보드 → New + → Blueprint → 이 repo 연결).
+
+| 서비스 | 용도 | 환경변수 |
+|---|---|---|
+| `job-prep-chatbot` | Gradio 메인 앱 | `OPENAI_API_KEY` |
+| `job-prep-chatbot-api` | FastAPI(`app/api.py`), vtuber가 호출 | `OPENAI_API_KEY`, (선택) `AZURE_SPEECH_KEY`/`AZURE_SPEECH_REGION` |
+| `job-prep-chatbot-vtuber` | vtuber 정적 빌드 | `VITE_CHAT_API` — API 서비스 URL로 자동 연결 |
+
+`sync: false`로 표시된 키는 Blueprint 적용 후 Render 대시보드에서 직접 입력해야 합니다.
+`VITE_CHAT_API`는 Vite 빌드 시점에 값이 박히므로, API 서비스 URL이 바뀌면 vtuber 서비스를 다시 배포해야 합니다.
 
 ## vtuber (VRM 아바타 프론트엔드)
 
