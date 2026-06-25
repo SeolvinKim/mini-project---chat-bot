@@ -794,7 +794,7 @@ with gr.Blocks(title=APP_TITLE) as demo:
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "7861"))
+    port = int(os.getenv("PORT", "7860"))
     demo.queue(default_concurrency_limit=8).launch(
         server_name="0.0.0.0",
         server_port=port,
