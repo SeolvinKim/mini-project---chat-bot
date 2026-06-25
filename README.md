@@ -70,10 +70,10 @@ uv run python app/main.py
 |---|---|---|
 | `job-prep-chatbot` | Gradio 메인 앱 | `OPENAI_API_KEY` |
 | `job-prep-chatbot-api` | FastAPI(`app/api.py`), vtuber가 호출 | `OPENAI_API_KEY`, (선택) `AZURE_SPEECH_KEY`/`AZURE_SPEECH_REGION` |
-| `job-prep-chatbot-vtuber` | vtuber 정적 빌드 | `VITE_CHAT_API` — API 서비스 URL로 자동 연결 |
+| `job-prep-chatbot-vtuber` | vtuber 정적 빌드 | `VITE_CHAT_API` — `job-prep-chatbot-api`의 실제 URL을 직접 입력 |
 
 `sync: false`로 표시된 키는 Blueprint 적용 후 Render 대시보드에서 직접 입력해야 합니다.
-`VITE_CHAT_API`는 Vite 빌드 시점에 값이 박히므로, API 서비스 URL이 바뀌면 vtuber 서비스를 다시 배포해야 합니다.
+`job-prep-chatbot-api`를 먼저 배포해 URL(예: `https://job-prep-chatbot-api.onrender.com`)을 확인한 뒤, 그 값을 `job-prep-chatbot-vtuber`의 `VITE_CHAT_API`에 입력하고 다시 배포하세요. Vite 빌드 시점에 값이 박히므로 API URL이 바뀌면 vtuber도 다시 배포해야 합니다.
 
 ## vtuber (VRM 아바타 프론트엔드)
 

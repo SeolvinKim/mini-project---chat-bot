@@ -43,13 +43,11 @@ services:
     buildCommand: cd vtuber && npm install && npm run build
     staticPublishPath: ./vtuber/dist
     envVars:
-      # job-prep-chatbot-api 배포 URL로 채운다. Vite 빌드 시점에 박히는 값이라
-      # API 서비스 URL이 바뀌면 vtuber를 다시 빌드(재배포)해야 한다.
+      # job-prep-chatbot-api 서비스의 실제 URL(예: https://job-prep-chatbot-api.onrender.com)을
+      # Render 대시보드에서 직접 입력한다. Vite 빌드 시점에 값이 박히므로,
+      # API 서비스 URL이 바뀌면 이 값을 갱신하고 vtuber를 다시 배포해야 한다.
       - key: VITE_CHAT_API
-        fromService:
-          type: web
-          name: job-prep-chatbot-api
-          property: url
+        sync: false
     routes:
       - type: rewrite
         source: /*
