@@ -14,8 +14,11 @@ if TYPE_CHECKING:
 NAME = "자격증 추천"
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "raw" / "certs.json"
+LANGUAGE_DATA_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "raw" / "language_tests.json"
+)
 MAX_RECOMMENDATIONS = 3
-_RECOMMENDATION_HISTORY: OrderedDict[str, dict[str, list[str]]] = OrderedDict()
+_RECOMMENDATION_HISTORY: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _MAX_HISTORY = 200
 
 CATEGORY_ALIASES = {
@@ -24,6 +27,19 @@ CATEGORY_ALIASES = {
     "IT": {"it", "개발", "개발자", "백엔드", "서버", "인프라", "네트워크"},
     "디지털": {"디지털", "핀테크", "플랫폼", "ai", "인공지능"},
     "사무·ERP": {"사무", "엑셀", "erp", "경영지원", "회계", "인사"},
+    "어학": {
+        "어학",
+        "외국어",
+        "영어",
+        "일본어",
+        "중국어",
+        "프랑스어",
+        "독일어",
+        "스페인어",
+        "토익",
+        "오픽",
+        "토스",
+    },
 }
 
 SCHEDULE_WORDS = {
@@ -62,6 +78,20 @@ def _load_certificates() -> dict[str, Any]:
 
     if not isinstance(payload, dict) or not isinstance(payload.get("certificates"), list):
         return {"last_updated": None, "certificates": []}
+
+    try:
+        language_payload = json.loads(LANGUAGE_DATA_PATH.read_text(encoding="utf-8"))
+        language_tests = language_payload.get("certificates", [])
+        if isinstance(language_tests, list):
+            payload["certificates"].extend(language_tests)
+        language_updated = language_payload.get("last_updated")
+        if language_updated and (
+            not payload.get("last_updated")
+            or str(language_updated) > str(payload["last_updated"])
+        ):
+            payload["last_updated"] = language_updated
+    except (OSError, json.JSONDecodeError, AttributeError):
+        pass
     return payload
 
 
@@ -107,10 +137,17 @@ def _profile_key(profile: Any) -> str:
 def _remember(profile: Any, certificate_ids: list[str], reset: bool = False) -> None:
     key = _profile_key(profile)
     if reset or key not in _RECOMMENDATION_HISTORY:
-        _RECOMMENDATION_HISTORY[key] = {"all": [], "last": []}
+        _RECOMMENDATION_HISTORY[key] = {
+            "all": [],
+            "last": [],
+            "pending_schedule": [],
+            "focused": "",
+        }
     history = _RECOMMENDATION_HISTORY[key]
     if reset:
         history["all"] = []
+        history["pending_schedule"] = []
+        history["focused"] = ""
     for certificate_id in certificate_ids:
         if certificate_id not in history["all"]:
             history["all"].append(certificate_id)
@@ -128,6 +165,37 @@ def _already_recommended(profile: Any) -> set[str]:
 def _last_recommended(profile: Any) -> list[str]:
     history = _RECOMMENDATION_HISTORY.get(_profile_key(profile), {})
     return list(history.get("last", []))
+
+
+def _set_pending_schedule(profile: Any, certificate_ids: list[str]) -> None:
+    key = _profile_key(profile)
+    history = _RECOMMENDATION_HISTORY.setdefault(
+        key,
+        {"all": [], "last": [], "pending_schedule": [], "focused": ""},
+    )
+    history["pending_schedule"] = list(certificate_ids)
+    _RECOMMENDATION_HISTORY.move_to_end(key)
+
+
+def _pending_schedule(profile: Any) -> list[str]:
+    history = _RECOMMENDATION_HISTORY.get(_profile_key(profile), {})
+    return list(history.get("pending_schedule", []))
+
+
+def _set_focused_certificate(profile: Any, certificate_id: str) -> None:
+    key = _profile_key(profile)
+    history = _RECOMMENDATION_HISTORY.setdefault(
+        key,
+        {"all": [], "last": [], "pending_schedule": [], "focused": ""},
+    )
+    history["focused"] = certificate_id
+    history["pending_schedule"] = []
+    _RECOMMENDATION_HISTORY.move_to_end(key)
+
+
+def _focused_certificate(profile: Any) -> str:
+    history = _RECOMMENDATION_HISTORY.get(_profile_key(profile), {})
+    return str(history.get("focused", ""))
 
 
 def _recent_recommendation_names(profile: Any) -> list[str]:
@@ -157,14 +225,70 @@ def _certificate_by_id(
 def _ordinal_index(user_input: str) -> int | None:
     normalized = _normalize_text(user_input).replace(" ", "")
     ordinal_groups = [
-        ("첫번째", "첫째", "1번째", "1번"),
-        ("두번째", "둘째", "2번째", "2번"),
-        ("세번째", "셋째", "3번째", "3번"),
+        ("1", "첫번째", "첫째", "첫번", "1번째", "1번"),
+        ("2", "두번째", "둘째", "두번", "2번째", "2번"),
+        ("3", "세번째", "셋째", "세번", "3번째", "3번", "마지막", "마지막거"),
     ]
     for index, aliases in enumerate(ordinal_groups):
-        if any(alias in normalized for alias in aliases):
+        if normalized in aliases or any(
+            alias != str(index + 1) and alias in normalized for alias in aliases
+        ):
             return index
     return None
+
+
+def _resolve_pending_schedule_selection(
+    profile: Any,
+    user_input: str,
+    certificates: list[dict[str, Any]],
+    payload: dict[str, Any],
+) -> str | None:
+    pending_ids = _pending_schedule(profile)
+    if not pending_ids:
+        return None
+
+    pending = [
+        certificate
+        for certificate_id in pending_ids
+        if (certificate := _certificate_by_id(certificate_id, certificates))
+    ]
+    if not pending:
+        return None
+
+    ordinal = _ordinal_index(user_input)
+    selected: dict[str, Any] | None = None
+    if ordinal is not None:
+        if ordinal >= len(pending):
+            return f"선택할 수 있는 자격증은 1번부터 {len(pending)}번까지예요."
+        selected = pending[ordinal]
+    else:
+        numeric_choice = re.fullmatch(
+            r"(\d+)(?:번|번째)?",
+            _normalize_text(user_input).replace(" ", ""),
+        )
+        if numeric_choice:
+            choice = int(numeric_choice.group(1))
+            if not 1 <= choice <= len(pending):
+                return f"선택할 수 있는 자격증은 1번부터 {len(pending)}번까지예요."
+            selected = pending[choice - 1]
+
+        mentioned = _find_certificate(user_input, pending)
+        normalized = _normalize_text(user_input)
+        if selected is None and mentioned and (
+            normalized
+            == _normalize_text(mentioned.get("certificate_name", ""))
+            or any(
+                normalized == _normalize_text(alias)
+                for alias in mentioned.get("aliases", [])
+            )
+        ):
+            selected = mentioned
+
+    if selected is None:
+        return None
+
+    _set_focused_certificate(profile, selected["certificate_id"])
+    return _format_schedule(selected, payload, date.today().year)
 
 
 def _resolve_recommended_schedule_request(
@@ -175,6 +299,17 @@ def _resolve_recommended_schedule_request(
 ) -> str | None:
     if not _has_any(user_input, SCHEDULE_WORDS):
         return None
+
+    normalized = _normalize_text(user_input)
+    refers_to_focused = any(
+        phrase in normalized
+        for phrase in ("그 자격증", "그 시험", "아까 자격증", "아까 시험", "그거")
+    )
+    focused_id = _focused_certificate(profile)
+    if refers_to_focused and focused_id:
+        focused = _certificate_by_id(focused_id, certificates)
+        if focused:
+            return _format_schedule(focused, payload, date.today().year)
 
     recent_ids = _last_recommended(profile)
     if not recent_ids:
@@ -194,10 +329,11 @@ def _resolve_recommended_schedule_request(
     ordinal = _ordinal_index(user_input)
     if ordinal is not None:
         if ordinal < len(recent):
-            return _format_schedule(recent[ordinal], payload, date.today().year)
+            selected = recent[ordinal]
+            _set_focused_certificate(profile, selected["certificate_id"])
+            return _format_schedule(selected, payload, date.today().year)
         return f"최근 추천 목록에는 {len(recent)}개의 자격증만 있어요."
 
-    normalized = _normalize_text(user_input)
     wants_all = any(
         phrase in normalized
         for phrase in ("모두", "전부", "각각", "추천한 자격증들", "추천해준 자격증들")
@@ -209,8 +345,13 @@ def _resolve_recommended_schedule_request(
         )
 
     if len(recent) == 1:
+        _set_focused_certificate(profile, recent[0]["certificate_id"])
         return _format_schedule(recent[0], payload, date.today().year)
 
+    _set_pending_schedule(
+        profile,
+        [certificate["certificate_id"] for certificate in recent],
+    )
     options = "\n".join(
         f"{index}. **{certificate['certificate_name']}**"
         for index, certificate in enumerate(recent, start=1)
@@ -244,6 +385,39 @@ def _profile_query(profile: Any, user_input: str) -> str:
         user_input,
     ]
     return _normalize_text(values)
+
+
+def _contains_job_signal(
+    user_input: str, certificates: list[dict[str, Any]]
+) -> bool:
+    normalized = _normalize_text(user_input)
+    common_jobs = {
+        "데이터 분석가",
+        "데이터 엔지니어",
+        "백엔드 개발",
+        "개발자",
+        "은행",
+        "금융영업",
+        "pb",
+        "wm",
+        "자산운용",
+        "애널리스트",
+        "리스크관리",
+        "재무",
+        "핀테크",
+        "금융 it",
+        "인프라",
+        "네트워크",
+        "경영지원",
+    }
+    job_terms = set(common_jobs)
+    for certificate in certificates:
+        job_terms.update(certificate.get("related_jobs", []))
+    return any(
+        _normalize_text(term) in normalized
+        for term in job_terms
+        if _normalize_text(term)
+    )
 
 
 def _owned_certificate_ids(
@@ -481,10 +655,17 @@ def _format_schedule(
         updated_text = "확인되지 않음"
 
     if not schedules:
+        schedule_note = certificate.get("schedule_note")
+        note_text = escape(
+            str(schedule_note)
+            if schedule_note
+            else "현재 저장된 데이터에서 시험 일정을 확인할 수 없습니다."
+        )
         return (
             '<div class="schedule-response">'
             f'<h2 class="schedule-title">{escape(certificate["certificate_name"])} {year}년 시험 일정</h2>'
-            '<div class="schedule-meta">현재 저장된 시험 일정이 없습니다.<br>'
+            f'<div class="schedule-meta">{note_text}<br>'
+            "지역·센터별 잔여 좌석과 접수 기간은 공식 사이트에서 확인해 주세요.<br>"
             f'시행기관 · {source_name}<br>공식 출처 · {source_link}<br>'
             f'데이터 기준 · {escape(updated_text)}</div></div>'
         )
@@ -572,7 +753,18 @@ def run(profile: UserProfile, user_input: str) -> str:
 
     certificate = _find_certificate(user_input, certificates)
     if certificate and _has_any(user_input, SCHEDULE_WORDS):
+        _set_focused_certificate(profile, certificate["certificate_id"])
         return _format_schedule(certificate, payload, date.today().year)
+
+    pending_selection = _resolve_pending_schedule_selection(
+        profile, user_input, certificates, payload
+    )
+    if pending_selection:
+        return pending_selection
+
+    category = _selected_category(user_input)
+    if category and _has_any(user_input, LIST_WORDS):
+        return _format_category_list(category, certificates)
 
     if _has_any(user_input, SCHEDULE_WORDS):
         referenced_schedule = _resolve_recommended_schedule_request(
@@ -581,11 +773,19 @@ def run(profile: UserProfile, user_input: str) -> str:
         if referenced_schedule:
             return referenced_schedule
 
-    category = _selected_category(user_input)
-    if category and _has_any(user_input, LIST_WORDS):
-        return _format_category_list(category, certificates)
-
     is_more = _has_any(user_input, MORE_WORDS)
+    if (
+        not str(_profile_value(profile, "target_job") or "").strip()
+        and not is_more
+        and not _last_recommended(profile)
+        and not _contains_job_signal(user_input, certificates)
+    ):
+        return (
+            "자격증을 추천하려면 먼저 **희망 직무**가 필요해요.\n\n"
+            "채팅창에 준비 중인 직무를 입력해 주세요.\n"
+            "예: **데이터 분석가**, **은행 IT**, **증권 자산운용**, **백엔드 개발자**"
+        )
+
     exclude = _already_recommended(profile) if is_more else set()
     recommendations = _score_certificates(
         profile=profile,

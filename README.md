@@ -22,6 +22,8 @@ Gradio 기반 공통 애플리케이션 뼈대입니다. 프로필 온보딩 후
 
 `certificate`(자격증) Tool은 규칙기반이라 LLM을 쓰지 않습니다. Tool 선택은 LLM이 아니라 버튼 클릭으로 결정되므로 별도 라우팅 모델이 없습니다. 전체 구조는 `AGENTS.md` 참고.
 
+자격증 추천은 SQLD·ADsP·투운사·정처기 등 국내 자격증과 TOEIC·OPIc·JLPT·HSK·TOPIK 등 어학시험(`data/raw/language_tests.json`)을 함께 검색하고, 시험 일정은 `ingest/certs/build_certs_data.py`로 공식 사이트에서 수집한 `data/raw/certs.json`을 기준으로 안내합니다(배포 앱은 실시간 크롤링하지 않음).
+
 ## Tool 파일
 
 | 기능 | 파일 |

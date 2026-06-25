@@ -45,7 +45,9 @@
 - `app/api.py` — FastAPI HTTP API (`/api/chat`, `/api/tts`). `vtuber/` 프론트엔드가 호출. `app/main.py`와 별도 프로세스(`uv run uvicorn app.api:app --port 8000`).
 - `core/` — 공유 인프라 (`schema.py`, `base.py`, `llm.py`, `vectorstore.py`).
 - `tools/<name>.py` — 기능별 Tool. 각자 `NAME`과 `run(profile, user_input) -> str` 제공.
-- `data/raw/certs.json` — 자격증/시험일정 데이터.
+- `data/raw/certs.json`, `data/raw/language_tests.json` — 자격증/어학시험 데이터. `tools/spec_recommend.py`가 둘을 합쳐서 사용한다.
+- `ingest/certs/build_certs_data.py` — 데이터자격시험·금융투자협회 등 공식 사이트에서 연간 일정을 수집해 `data/raw/certs.json`을 갱신하는 오프라인 1회성 스크립트(`uv run python ingest/certs/build_certs_data.py`). 배포 앱은 실시간 크롤링하지 않는다.
+- `ingest/certs/index_certs.py` — `core/vectorstore.py`로 `certs` Chroma 컬렉션에 자격증 설명을 인덱싱(`uv run python ingest/certs/index_certs.py`).
 - `vtuber/` — Vite/three.js VRM 아바타 프론트엔드. `npm install && npm run dev` (포트 5173), `app/api.py`를 8000에 띄운 상태여야 응답한다. 자세한 실행법은 README.md 참고.
 
 ## Tool 작성 계약 ⚠️ 반드시 준수
