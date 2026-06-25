@@ -20,6 +20,9 @@ if str(ROOT) not in sys.path:
 from core.schema import UserProfile
 
 load_dotenv()
+FONT_PATH = ROOT / "assets" / "fonts" / "ChironGoRoundTC-VariableFont_wght.ttf"
+if FONT_PATH.exists():
+    gr.set_static_paths(FONT_PATH)
 
 
 @dataclass(frozen=True)
@@ -147,10 +150,14 @@ def _keyword_route(message: str, previous_tool: str = "") -> RouteDecision:
     for tool, keywords in keyword_groups.items():
         if any(keyword in normalized for keyword in keywords):
             return RouteDecision(tool=tool, standalone_query=message)
-    if previous_tool in TOOL_MAP and any(
-        word in normalized
-        for word in ("그거", "그것", "아까", "더", "다른", "자세히", "이어서")
-    ):
+    greeting_only = normalized.strip(" !?.") in {
+        "안녕",
+        "안녕하세요",
+        "반가워",
+        "고마워",
+        "감사합니다",
+    }
+    if previous_tool in TOOL_MAP and not greeting_only:
         return RouteDecision(tool=previous_tool, standalone_query=message)
     return RouteDecision(
         tool="general",
@@ -291,8 +298,27 @@ def reset_chat() -> tuple[str, list[dict[str, str]], gr.Radio, str, str]:
     )
 
 
+def select_feature(tool_key: str) -> tuple:
+    spec = TOOL_MAP[tool_key]
+    button_updates = [
+        gr.update(variant="primary" if tool.key == tool_key else "secondary")
+        for tool in TOOLS
+    ]
+    return (
+        tool_key,
+        f"{spec.icon} **{spec.label}** 기능을 선택했어요. 편하게 질문해 주세요.",
+        *button_updates,
+    )
+
+
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+@font-face{
+  font-family:"Chiron Go Round TC";
+  src:url("/gradio_api/file=assets/fonts/ChironGoRoundTC-VariableFont_wght.ttf") format("truetype");
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+}
 
 :root{
   --glass-blue:#4b93ff;
@@ -305,29 +331,30 @@ CSS = """
   --glass-shadow:0 22px 50px rgba(62,77,108,.18),0 6px 14px rgba(49,75,121,.12);
 }
 
-html,body{min-height:100%;background:#edf1f6!important}
+html,body{min-height:100%;background:#e7e8ea!important}
 body:before,body:after{
   content:"";position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(3px);
 }
 body:before{
   width:560px;height:560px;left:-170px;top:-180px;
-  background:radial-gradient(circle at 55% 52%,rgba(178,220,255,.65),rgba(213,231,255,.24) 48%,transparent 72%);
+  background:radial-gradient(circle at 55% 52%,rgba(255,255,255,.72),rgba(195,220,255,.2) 48%,transparent 72%);
 }
 body:after{
   width:620px;height:620px;right:-210px;bottom:-260px;
-  background:radial-gradient(circle at 45% 40%,rgba(177,197,255,.55),rgba(225,232,255,.2) 50%,transparent 72%);
+  background:radial-gradient(circle at 45% 40%,rgba(255,255,255,.56),rgba(203,211,255,.18) 50%,transparent 72%);
 }
 
 .gradio-container{
   position:relative;z-index:1;max-width:none!important;margin:0!important;padding:24px!important;
   min-height:100vh!important;color:var(--ink)!important;
-  font-family:"Noto Sans KR","Gowun Dodum",sans-serif!important;
+  font-family:"Chiron Go Round TC",sans-serif!important;
   background:
-    linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px),
-    linear-gradient(135deg,#e8edf3 0%,#f8fafc 48%,#e9edf4 100%)!important;
+    linear-gradient(rgba(103,112,125,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(103,112,125,.055) 1px,transparent 1px),
+    linear-gradient(135deg,#dfe1e4 0%,#f1f2f3 48%,#dfe1e5 100%)!important;
   background-size:32px 32px,32px 32px,auto!important;
 }
+.gradio-container *{font-family:"Chiron Go Round TC",sans-serif!important}
 
 .onboarding{max-width:720px;margin:2vh auto 5vh!important}
 .hero{text-align:center;padding:16px 8px 24px}
@@ -354,10 +381,11 @@ body:after{
   position:relative;overflow:hidden;padding:28px!important;border-radius:32px!important;
   border:1px solid var(--glass-border)!important;
   background:
-    linear-gradient(145deg,rgba(255,255,255,.68),rgba(235,241,250,.42))!important;
+    linear-gradient(145deg,rgba(255,255,255,.52),rgba(224,227,232,.34))!important;
   -webkit-backdrop-filter:blur(28px) saturate(145%);backdrop-filter:blur(28px) saturate(145%);
-  box-shadow:inset 0 1.5px 1px rgba(255,255,255,.95),inset 0 -1px 2px rgba(99,125,166,.18),
-    var(--glass-shadow)!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.96),inset 0 -2px 4px rgba(83,93,108,.2),
+    0 1px 0 rgba(126,139,160,.34),0 19px 30px rgba(57,64,76,.18),
+    0 0 18px rgba(120,173,255,.09)!important;
 }
 .glass-card:before,.card:before,.chat-card:before{
   content:"";position:absolute;z-index:0;inset:1px 12px auto;height:42%;pointer-events:none;
@@ -431,19 +459,29 @@ body:after{
 .route-status{padding:9px 15px!important;color:#285d9f}
 .profile-chip p,.route-status p{margin:0!important}
 
-.quick-glass{
-  padding:10px 13px 12px!important;margin:3px 0 14px!important;border-radius:22px!important;
-  border:1px solid rgba(255,255,255,.78)!important;
-  background:rgba(244,248,253,.46)!important;
-  box-shadow:inset 0 1px 1px #fff,0 8px 18px rgba(64,82,113,.08)!important;
+.feature-label{margin:14px 2px 7px;color:#657083;font-size:13px}
+.feature-menu{gap:10px!important;margin:0 0 15px!important}
+.feature-glass{
+  min-height:62px!important;border-radius:24px!important;color:#24344e!important;
+  border:1px solid rgba(255,255,255,.92)!important;
+  background:
+    radial-gradient(circle at 22% 4%,rgba(255,255,255,.94),transparent 37%),
+    linear-gradient(145deg,rgba(255,255,255,.63),rgba(202,214,231,.34))!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.98),inset 0 -3px 5px rgba(86,102,128,.18),
+    0 4px 0 rgba(110,124,146,.25),0 10px 17px rgba(57,67,83,.14),
+    -2px 0 7px rgba(129,206,255,.18),2px 0 7px rgba(255,190,128,.11)!important;
+  transition:transform .16s ease,filter .16s ease!important;
 }
-.quick-glass>label>span{padding-left:3px}
-.quick-glass .wrap{gap:7px!important}
-.quick-glass label:has(input){
-  flex:0 1 auto!important;width:auto!important;
-  border:1px solid rgba(255,255,255,.82)!important;border-radius:999px!important;
-  background:linear-gradient(145deg,rgba(255,255,255,.66),rgba(220,233,251,.46))!important;
-  box-shadow:inset 0 1px 1px #fff,0 4px 9px rgba(55,77,111,.1)!important;
+.feature-glass:hover{transform:translateY(-2px);filter:brightness(1.04)}
+.feature-glass:active{transform:translateY(3px)}
+.feature-glass.primary{
+  color:#fff!important;
+  background:
+    radial-gradient(circle at 30% -20%,rgba(255,255,255,.82),transparent 44%),
+    linear-gradient(180deg,rgba(113,177,255,.92),rgba(48,111,222,.9))!important;
+  text-shadow:0 1px 1px rgba(16,55,122,.35);
+  box-shadow:inset 0 2px 2px #fff,inset 0 -4px 7px rgba(27,73,161,.28),
+    0 5px 0 rgba(44,85,155,.4),0 12px 20px rgba(49,102,194,.25)!important;
 }
 
 .chat-card{padding:15px!important;border-radius:34px!important}
@@ -466,6 +504,42 @@ body:after{
   color:var(--ink)!important;border-bottom-left-radius:7px!important;
   background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(224,233,246,.68))!important;
 }
+#main-chat .role:has(.schedule-response){
+  width:100%!important;max-width:100%!important;
+}
+#main-chat .bot.message:has(.schedule-response){
+  width:100%!important;max-width:100%!important;
+}
+#main-chat .message:has(.schedule-response){
+  width:100%!important;max-width:100%!important;padding:14px!important;
+}
+#main-chat .message table{display:none!important}
+#main-chat .schedule-response{width:min(100%,560px);margin:0;padding:1px}
+#main-chat .schedule-title{margin:0 0 14px;font-size:20px;line-height:1.35;color:#18233a}
+#main-chat .schedule-section{margin:12px 0}
+#main-chat .schedule-section-title{margin:0 0 8px;font-size:14px;color:#4a5870}
+#main-chat .schedule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#main-chat .exam-card{
+  padding:13px;border:1px solid rgba(255,255,255,.88);border-radius:19px;
+  background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(213,224,240,.46));
+  box-shadow:inset 0 1px 1px #fff,0 6px 14px rgba(51,65,91,.1);
+}
+#main-chat .exam-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+#main-chat .exam-round{font-weight:750;color:#1f2b42}
+#main-chat .exam-status{
+  flex:none;padding:4px 8px;border-radius:999px;font-size:11px;color:#2760a9;
+  background:rgba(204,226,255,.72);border:1px solid rgba(255,255,255,.9)
+}
+#main-chat .exam-status.done{color:#667083;background:rgba(225,228,233,.78)}
+#main-chat .exam-info{display:grid;grid-template-columns:64px 1fr;gap:5px 8px;font-size:12px;line-height:1.45}
+#main-chat .exam-info span{color:#7b8492}
+#main-chat .exam-info strong{color:#303b4e;font-weight:600;overflow-wrap:anywhere}
+#main-chat .schedule-meta{
+  margin-top:13px;padding:11px 13px;border-radius:15px;font-size:12px;line-height:1.65;color:#5e6879;
+  background:rgba(239,243,249,.62);border:1px solid rgba(255,255,255,.76)
+}
+#main-chat .schedule-meta a{color:#276dd4;text-decoration:none;font-weight:650}
+#main-chat .schedule-note{margin:9px 2px 0;color:#7b8491;font-size:11px}
 .composer-row{align-items:end!important;gap:10px!important}
 .composer-input{flex:1}
 .composer-input textarea{border-radius:21px!important}
@@ -480,7 +554,11 @@ footer{display:none!important}
   .chat-topbar{flex-direction:column!important;align-items:flex-start!important}
   .chat-heading h1{font-size:24px!important}.chat-card{padding:9px!important}
   #main-chat .message{max-width:90%!important}
+  #main-chat .message:has(.schedule-response){width:100%!important;max-width:100%!important}
+  #main-chat .schedule-grid{grid-template-columns:1fr}
   .composer-row{gap:7px!important}.send-pill{min-width:80px!important}
+  .feature-menu{display:grid!important;grid-template-columns:1fr 1fr!important}
+  .feature-glass{min-width:0!important}
 }
 """
 
@@ -520,17 +598,16 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
             "🤖 질문의 맥락을 읽고 적절한 기능을 자동으로 선택해요.",
             elem_classes=["route-status"],
         )
-        quick_examples = gr.Radio(
-            choices=[
-                "내 경험에 맞는 금융권 직무를 추천해줘",
-                "이 자소서 지원동기를 피드백해줘",
-                "데이터 분석 직무 면접 질문을 만들어줘",
-                "SQLD 올해 시험 일정 알려줘",
-            ],
-            label="이렇게 물어보세요",
-            interactive=True,
-            elem_classes=["quick-glass"],
-        )
+        gr.HTML('<p class="feature-label">원하는 기능을 선택하거나 바로 질문해 주세요.</p>')
+        with gr.Row(elem_classes=["feature-menu"]):
+            feature_buttons = [
+                gr.Button(
+                    f"{tool.icon} {tool.label}",
+                    variant="secondary",
+                    elem_classes=["feature-glass"],
+                )
+                for tool in TOOLS
+            ]
         with gr.Group(elem_classes=["chat-card"]):
             chatbot = gr.Chatbot(
                 value=[
@@ -576,7 +653,11 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
         lambda: (gr.update(visible=True), gr.update(visible=False)),
         outputs=[profile_page, chat_page],
     )
-    quick_examples.input(lambda value: value or "", inputs=quick_examples, outputs=message)
+    for button, tool in zip(feature_buttons, TOOLS):
+        button.click(
+            lambda key=tool.key: select_feature(key),
+            outputs=[previous_tool, route_status, *feature_buttons],
+        )
     chat_inputs = [message, chatbot, profile_state, previous_tool]
     chat_outputs = [message, chatbot, follow_up, previous_tool, route_status]
     send.click(respond, inputs=chat_inputs, outputs=chat_outputs)

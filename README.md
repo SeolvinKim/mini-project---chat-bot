@@ -2,6 +2,9 @@
 
 Gradio 기반 취업준비 챗봇입니다. 프로필 온보딩 후 하나의 채팅창에서 질문하면 알맞은 Tool로 자동 연결합니다.
 
+UI는 `assets/fonts/ChironGoRoundTC-VariableFont_wght.ttf`를 전체 화면 글꼴로 사용하며,
+반투명 리퀴드 글래스 카드·버튼과 모바일 대응형 시험 일정 카드로 구성됩니다.
+
 ## 자동 Tool 라우팅
 
 | 질문 예시 | 연결 기능 |
