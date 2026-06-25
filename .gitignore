@@ -150,6 +150,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# TTS 산출물 (음성 비교 데모 mp3 등)
+out/
+
 # Environments
 .env
 .envrc

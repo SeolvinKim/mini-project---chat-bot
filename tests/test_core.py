@@ -1,5 +1,5 @@
 from core.schema import UserProfile
-from app.main import _route_message, enter_chat
+from app.main import DEFAULT_TOOL, TOOL_MAP, enter_chat, respond, select_tool
 
 
 def test_user_profile_defaults_are_independent() -> None:
@@ -16,23 +16,26 @@ def test_can_enter_without_target_job() -> None:
     assert error == ""
 
 
-def test_router_uses_keywords_without_api_key(monkeypatch) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    decision = _route_message(
-        "SQLD 시험 일정 알려줘",
-        [],
-        UserProfile(),
+def test_select_tool_switches_active_tool_and_button_variants() -> None:
+    active_tool, _, _, _, *button_updates = select_tool("certificate")
+    assert active_tool == "certificate"
+    certificate_index = list(TOOL_MAP).index("certificate")
+    assert button_updates[certificate_index]["variant"] == "primary"
+    assert all(
+        update["variant"] == "secondary"
+        for index, update in enumerate(button_updates)
+        if index != certificate_index
     )
-    assert decision.tool == "certificate"
-    assert decision.standalone_query == "SQLD 시험 일정 알려줘"
 
 
-def test_router_keeps_previous_tool_for_follow_up_without_api_key(monkeypatch) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    decision = _route_message(
-        "그거 더 자세히 알려줘",
-        [{"role": "assistant", "content": "자격증 세 개를 추천했어요."}],
-        UserProfile(),
-        "certificate",
-    )
-    assert decision.tool == "certificate"
+def test_respond_uses_active_tool_not_message_keywords() -> None:
+    # active_tool="job"이면 메시지에 "자격증" 키워드가 있어도 job Tool로 응답해야 한다.
+    # job은 아직 병합 전이므로 "병합되지 않았어요" 안내가 나와야 정상 — 메시지 내용으로
+    # 자동으로 certificate Tool로 전환(=락인 버그의 반대 증상)되면 안 된다.
+    _, history, _ = respond("자격증 추천해줘", None, {}, "job")
+    assert "직무 추천" in history[-1]["content"]
+    assert "병합되지 않았" in history[-1]["content"]
+
+
+def test_default_tool_is_first_tool() -> None:
+    assert DEFAULT_TOOL == "job"
