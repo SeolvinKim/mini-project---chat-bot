@@ -4,6 +4,7 @@ import json
 import re
 from collections import OrderedDict
 from datetime import date, datetime
+from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -429,25 +430,23 @@ def _display_period(start: str | None, end: str | None) -> str:
     return f"{_display_date(start)}~{_display_date(end)}"
 
 
-def _schedule_table(schedules: list[dict[str, Any]]) -> list[str]:
-    lines = [
-        "| 상태 | 회차 | 원서접수 기간 | 시험일 | 합격자 발표일 |",
-        "|---|---|---|---|---|",
-    ]
+def _schedule_cards(schedules: list[dict[str, Any]]) -> str:
+    cards = []
     for schedule in schedules:
-        lines.append(
-            "| {status} | {round_name} | {application} | {exam} | {result} |".format(
-                status=_schedule_status(schedule),
-                round_name=schedule.get("round") or "아직 공시되지 않음",
-                application=_display_period(
-                    schedule.get("application_start"),
-                    schedule.get("application_end"),
-                ),
-                exam=_display_date(schedule.get("exam_date")),
-                result=_display_date(schedule.get("result_date")),
-            )
+        status = _schedule_status(schedule)
+        status_class = " done" if status == "종료" else ""
+        cards.append(
+            '<article class="exam-card">'
+            '<div class="exam-card-head">'
+            f'<span class="exam-round">{escape(str(schedule.get("round") or "회차 미정"))}</span>'
+            f'<span class="exam-status{status_class}">{escape(status)}</span>'
+            '</div><div class="exam-info">'
+            f'<span>원서접수</span><strong>{escape(_display_period(schedule.get("application_start"), schedule.get("application_end")))}</strong>'
+            f'<span>시험일</span><strong>{escape(_display_date(schedule.get("exam_date")))}</strong>'
+            f'<span>합격 발표</span><strong>{escape(_display_date(schedule.get("result_date")))}</strong>'
+            "</div></article>"
         )
-    return lines
+    return '<div class="schedule-grid">' + "".join(cards) + "</div>"
 
 
 def _format_schedule(
@@ -466,10 +465,11 @@ def _format_schedule(
     )
 
     source_url = certificate.get("source_url", "")
+    source_name = escape(str(certificate.get("source_name", "공식 사이트")))
     source_link = (
-        f"[{certificate.get('source_name', '공식 사이트')}]({source_url})"
+        f'<a href="{escape(source_url, quote=True)}" target="_blank">{source_name}</a>'
         if source_url
-        else certificate.get("source_name", "공식 사이트")
+        else source_name
     )
     last_updated = payload.get("last_updated") or certificate.get("last_updated")
     if last_updated:
@@ -481,17 +481,12 @@ def _format_schedule(
         updated_text = "확인되지 않음"
 
     if not schedules:
-        return "\n".join(
-            [
-                f"## {certificate['certificate_name']} {year}년 시험 일정",
-                "",
-                "현재 저장된 데이터에서 시험 일정을 확인할 수 없습니다.",
-                "공식 사이트에서 최신 일정을 확인해 주세요.",
-                "",
-                f"- **시행기관:** {certificate.get('source_name', '확인 필요')}",
-                f"- **공식 출처:** {source_link}",
-                f"- **데이터 기준:** {updated_text}",
-            ]
+        return (
+            '<div class="schedule-response">'
+            f'<h2 class="schedule-title">{escape(certificate["certificate_name"])} {year}년 시험 일정</h2>'
+            '<div class="schedule-meta">현재 저장된 시험 일정이 없습니다.<br>'
+            f'시행기관 · {source_name}<br>공식 출처 · {source_link}<br>'
+            f'데이터 기준 · {escape(updated_text)}</div></div>'
         )
 
     upcoming = [
@@ -502,26 +497,33 @@ def _format_schedule(
     completed = [
         schedule for schedule in schedules if _schedule_status(schedule) == "종료"
     ]
-    lines = [f"## {certificate['certificate_name']} {year}년 시험 일정", ""]
-
+    sections = []
     if upcoming:
-        lines.extend(["### 예정된 시험", "", *_schedule_table(upcoming), ""])
+        sections.append(
+            '<section class="schedule-section"><h3 class="schedule-section-title">예정된 시험</h3>'
+            f"{_schedule_cards(upcoming)}</section>"
+        )
     else:
-        lines.extend(["### 예정된 시험", "", "현재 저장된 예정 시험이 없습니다.", ""])
-
+        sections.append(
+            '<section class="schedule-section"><h3 class="schedule-section-title">예정된 시험</h3>'
+            '<div class="schedule-meta">현재 저장된 예정 시험이 없습니다.</div></section>'
+        )
     if completed:
-        lines.extend(["### 종료된 시험", "", *_schedule_table(completed), ""])
-
-    lines.extend(
-        [
-            f"- **데이터 기준:** {updated_text}",
-            f"- **시행기관:** {certificate.get('source_name', '확인 필요')}",
-            f"- **공식 출처:** {source_link}",
-            "",
-            "> 시험 일정은 변경될 수 있으므로 접수 전 공식 사이트에서 다시 확인해 주세요.",
-        ]
+        sections.append(
+            '<section class="schedule-section"><h3 class="schedule-section-title">종료된 시험</h3>'
+            f"{_schedule_cards(completed)}</section>"
+        )
+    return (
+        '<div class="schedule-response">'
+        f'<h2 class="schedule-title">{escape(certificate["certificate_name"])} {year}년 시험 일정</h2>'
+        f'{"".join(sections)}'
+        '<div class="schedule-meta">'
+        f'데이터 기준 · {escape(updated_text)}<br>'
+        f'시행기관 · {source_name}<br>'
+        f'공식 출처 · {source_link}</div>'
+        '<p class="schedule-note">시험 일정은 변경될 수 있으므로 접수 전 공식 사이트에서 다시 확인해 주세요.</p>'
+        "</div>"
     )
-    return "\n".join(lines)
 
 
 def _format_category_list(
