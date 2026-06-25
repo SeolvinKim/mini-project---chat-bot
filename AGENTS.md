@@ -9,6 +9,35 @@
   - 실행: `uv run python app/main.py`
   - 테스트: `uv run python -m pytest`
 - Python 3.11~3.12.
+- API 키: `OPENAI_API_KEY`(생성·임베딩). `.env.example` 참고.
+
+## Tool 자동 라우팅 구조
+
+```
+사용자 입력
+  │
+  ▼
+[빠른 분류] 명확한 키워드가 있으면 즉시 Tool 결정
+  │
+  ├─ 모호한 질문 → get_router_llm()이 최근 대화·프로필 참고
+  ▼
+[대답 생성] 선택된 Tool의 run(profile, message) 호출
+  ├─ certificate : 규칙기반 (LLM 불필요)
+  ├─ cover_letter: 생성 LLM 필요 → get_generation_llm() (미병합)
+  ├─ interview   : 생성 LLM 필요 → get_generation_llm() (미병합)
+  └─ job         : 생성 LLM 필요 → get_generation_llm() (미병합)
+```
+
+`core/llm.py` 헬퍼:
+
+| 함수 | 모델 | 용도 |
+|---|---|---|
+| `get_router_llm()` | `gpt-5.4-mini` | 모호한 질문의 Tool 분류 |
+| `get_generation_llm()` | `gpt-5.4` | 콘텐츠 생성 (자소서·면접·직무) |
+| `get_embeddings()` | `text-embedding-3-small` | RAG 임베딩 |
+
+- **생성 Tool은 `get_generation_llm()`을 쓰세요.**
+- 키워드로 분류되지 않는 질문만 `get_router_llm()`을 사용합니다.
 
 ## 구조
 

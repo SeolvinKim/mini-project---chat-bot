@@ -171,14 +171,18 @@ def _route_message(
     if not os.getenv("OPENAI_API_KEY"):
         return _keyword_route(message, previous_tool)
 
+    keyword_decision = _keyword_route(message, previous_tool)
+    if keyword_decision.tool != "general":
+        return keyword_decision
+
     recent = history[-6:]
     conversation = "\n".join(
         f"{item.get('role', 'user')}: {item.get('content', '')}" for item in recent
     )
     try:
-        from core.llm import get_llm
+        from core.llm import get_router_llm
 
-        router = get_llm().with_structured_output(RouteDecision)
+        router = get_router_llm().with_structured_output(RouteDecision)
         return router.invoke(
             [
                 (
