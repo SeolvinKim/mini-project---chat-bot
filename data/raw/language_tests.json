@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "year": 2026,
+  "last_updated": "2026-06-25T13:10:00+09:00",
+  "certificates": [
+    {
+      "certificate_id": "toeic",
+      "certificate_name": "TOEIC",
+      "aliases": ["토익", "TOEIC L&R", "토익 LR"],
+      "category": "어학",
+      "related_jobs": ["공기업", "대기업", "해외영업", "무역", "항공"],
+      "keywords": ["영어", "취업", "공기업", "대기업", "해외영업", "무역"],
+      "description": "국내 기업과 공공기관 채용에서 폭넓게 활용되는 영어 듣기·읽기 시험입니다.",
+      "source_name": "TOEIC 공식 사이트",
+      "source_url": "https://exam.toeic.co.kr/receipt/examSchList.php",
+      "exams": [
+        {"year": 2026, "round": "제571회", "application_start": "2026-04-27", "application_end": "2026-06-10", "exam_date": "2026-06-13", "result_date": "2026-06-24"},
+        {"year": 2026, "round": "제572회", "application_start": "2026-05-11", "application_end": "2026-06-25", "exam_date": "2026-06-28", "result_date": "2026-07-08"},
+        {"year": 2026, "round": "제573회", "application_start": "2026-05-25", "application_end": "2026-07-09", "exam_date": "2026-07-12", "result_date": "2026-07-21"},
+        {"year": 2026, "round": "제574회", "application_start": "2026-06-08", "application_end": "2026-07-23", "exam_date": "2026-07-26", "result_date": "2026-08-04"},
+        {"year": 2026, "round": "제575회", "application_start": "2026-06-22", "application_end": "2026-08-06", "exam_date": "2026-08-09", "result_date": "2026-08-18"},
+        {"year": 2026, "round": "제576회", "application_start": "2026-07-06", "application_end": null, "exam_date": "2026-08-23", "result_date": "2026-09-03"}
+      ]
+    },
+    {
+      "certificate_id": "toeic_speaking",
+      "certificate_name": "TOEIC Speaking",
+      "aliases": ["토익스피킹", "토스", "TOEIC Speaking Test"],
+      "category": "어학",
+      "related_jobs": ["대기업", "해외영업", "무역", "서비스", "항공"],
+      "keywords": ["영어", "말하기", "스피킹", "취업", "대기업", "해외영업"],
+      "description": "기업 채용에서 영어 말하기 역량 증빙으로 많이 활용되는 시험입니다.",
+      "source_name": "TOEIC Speaking 공식 사이트",
+      "source_url": "https://www.toeicswt.co.kr/receipt/examSchList.php",
+      "schedule_note": "매주 여러 차례 수시 시행되며 시험장별 잔여 좌석과 접수 마감일이 다릅니다.",
+      "exams": []
+    },
+    {
+      "certificate_id": "opic",
+      "certificate_name": "OPIc",
+      "aliases": ["오픽", "OPIC", "외국어말하기평가"],
+      "category": "어학",
+      "related_jobs": ["대기업", "해외영업", "무역", "서비스", "항공"],
+      "keywords": ["영어", "일본어", "중국어", "말하기", "스피킹", "취업"],
+      "description": "실제 생활과 업무 상황을 바탕으로 외국어 말하기 능력을 평가하는 시험입니다.",
+      "source_name": "OPIc 공식 사이트",
+      "source_url": "https://www.opic.or.kr/opics/servlet/controller.opic.site.receipt.AnnualScheduleServlet?p_process=select-new-list",
+      "schedule_note": "센터별로 거의 매일 수시 시행됩니다. 응시일과 언어를 선택해 접수 가능한 시간을 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "teps",
+      "certificate_name": "TEPS",
+      "aliases": ["텝스", "서울대 텝스", "NEW TEPS"],
+      "category": "어학",
+      "related_jobs": ["공기업", "연구직", "대학원", "전문직"],
+      "keywords": ["영어", "공기업", "대학원", "연구", "전문직"],
+      "description": "서울대학교가 개발한 영어능력 평가로 공공기관·대학원·전문자격에서 활용됩니다.",
+      "source_name": "TEPS 공식 사이트",
+      "source_url": "https://www.teps.or.kr/receiption/examschedule",
+      "exams": [
+        {"year": 2026, "round": "제404회", "application_start": "2026-06-24", "application_end": "2026-07-07", "exam_date": "2026-07-11", "result_date": "2026-07-20"},
+        {"year": 2026, "round": "제405회", "application_start": "2026-06-08", "application_end": "2026-07-05", "exam_date": "2026-07-25", "result_date": "2026-08-03"},
+        {"year": 2026, "round": "제406회", "application_start": "2026-06-22", "application_end": "2026-07-19", "exam_date": "2026-08-08", "result_date": "2026-08-18"},
+        {"year": 2026, "round": "제407회", "application_start": "2026-07-06", "application_end": "2026-08-02", "exam_date": "2026-08-22", "result_date": "2026-08-31"}
+      ]
+    },
+    {
+      "certificate_id": "gtelp",
+      "certificate_name": "G-TELP",
+      "aliases": ["지텔프", "GTELP", "G-TELP Level 2"],
+      "category": "어학",
+      "related_jobs": ["공무원", "경찰", "소방", "전문자격", "공기업"],
+      "keywords": ["영어", "공무원", "경찰", "소방", "전문자격", "공기업"],
+      "description": "공무원·경찰·소방 및 각종 국가전문자격 영어성적 대체에 활용되는 시험입니다.",
+      "source_name": "G-TELP 공식 사이트",
+      "source_url": "https://www.g-telp.co.kr/score/regular_exam.asp",
+      "schedule_note": "정기시험이 연중 여러 차례 시행됩니다. 회차별 접수 기간과 고사장은 공식 일정에서 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "toefl_ibt",
+      "certificate_name": "TOEFL iBT",
+      "aliases": ["토플", "TOEFL", "토플 IBT"],
+      "category": "어학",
+      "related_jobs": ["해외취업", "유학", "국제기구", "연구직"],
+      "keywords": ["영어", "해외취업", "유학", "국제기구", "대학원"],
+      "description": "해외 대학·대학원과 국제기관에서 널리 인정되는 학술 영어 시험입니다.",
+      "source_name": "ETS TOEFL 공식 사이트",
+      "source_url": "https://www.ets.org/toefl/test-takers/ibt/schedule.html",
+      "schedule_note": "시험센터와 Home Edition별 수시 일정입니다. 지역을 선택하면 예약 가능한 날짜가 표시됩니다.",
+      "exams": []
+    },
+    {
+      "certificate_id": "ielts",
+      "certificate_name": "IELTS",
+      "aliases": ["아이엘츠", "IELTS Academic", "IELTS General"],
+      "category": "어학",
+      "related_jobs": ["해외취업", "유학", "이민", "국제기구"],
+      "keywords": ["영어", "해외취업", "유학", "이민", "영국", "호주"],
+      "description": "유학·해외취업·이민에 활용되는 국제 영어능력 시험입니다.",
+      "source_name": "British Council IELTS Korea",
+      "source_url": "https://www.britishcouncil.kr/en/exam/ielts",
+      "schedule_note": "컴퓨터 시험은 센터별로 수시 운영됩니다. 지역과 Academic·General 유형을 선택해 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "jlpt",
+      "certificate_name": "JLPT",
+      "aliases": ["일본어능력시험", "일능", "JLPT N1", "JLPT N2", "JLPT N3"],
+      "category": "어학",
+      "related_jobs": ["일본계기업", "해외영업", "무역", "관광", "항공"],
+      "keywords": ["일본어", "일본", "해외영업", "무역", "관광"],
+      "description": "일본어 문자·어휘·문법·독해·청해 능력을 N1~N5로 평가하는 국제 시험입니다.",
+      "source_name": "JLPT 한국 공식 사이트",
+      "source_url": "https://www.jlpt.or.kr/html/",
+      "exams": [
+        {"year": 2026, "round": "제1회", "application_start": "2026-04-01", "application_end": "2026-05-03", "exam_date": "2026-07-05", "result_date": null},
+        {"year": 2026, "round": "제2회", "application_start": null, "application_end": null, "exam_date": "2026-12-06", "result_date": null}
+      ]
+    },
+    {
+      "certificate_id": "jpt",
+      "certificate_name": "JPT",
+      "aliases": ["제이피티", "JPT 일본어"],
+      "category": "어학",
+      "related_jobs": ["일본계기업", "해외영업", "무역", "관광"],
+      "keywords": ["일본어", "일본", "취업", "해외영업", "무역"],
+      "description": "비즈니스 상황을 포함한 일본어 듣기·읽기 능력을 점수로 평가하는 시험입니다.",
+      "source_name": "JPT 공식 사이트",
+      "source_url": "https://www.jpt.co.kr/",
+      "exams": [
+        {"year": 2026, "round": "7월 정기시험", "application_start": "2026-06-01", "application_end": "2026-07-14", "exam_date": "2026-07-19", "result_date": null},
+        {"year": 2026, "round": "8월 정기시험", "application_start": "2026-06-29", "application_end": "2026-08-11", "exam_date": "2026-08-16", "result_date": null}
+      ]
+    },
+    {
+      "certificate_id": "sjpt",
+      "certificate_name": "SJPT",
+      "aliases": ["에스제이피티", "일본어 말하기 시험"],
+      "category": "어학",
+      "related_jobs": ["일본계기업", "해외영업", "관광", "서비스"],
+      "keywords": ["일본어", "말하기", "스피킹", "일본계기업", "관광"],
+      "description": "일본어 말하기 능력을 비즈니스·일상 상황 중심으로 평가하는 시험입니다.",
+      "source_name": "YBM 어학시험",
+      "source_url": "https://www.toeic.co.kr/",
+      "schedule_note": "정기시험이 월별로 운영되며 회차별 접수 기간은 YBM 어학시험 사이트에서 확인할 수 있습니다.",
+      "exams": []
+    },
+    {
+      "certificate_id": "hsk",
+      "certificate_name": "HSK",
+      "aliases": ["한어수평고시", "중국어능력시험", "HSK IBT", "HSK PBT"],
+      "category": "어학",
+      "related_jobs": ["중국계기업", "해외영업", "무역", "관광"],
+      "keywords": ["중국어", "중국", "해외영업", "무역", "관광"],
+      "description": "중국어 듣기·읽기·쓰기 능력을 평가하는 공인 중국어 시험입니다.",
+      "source_name": "HSK한국사무국",
+      "source_url": "https://www.hsk.or.kr/",
+      "exams": [
+        {"year": 2026, "round": "7월 IBT", "application_start": "2026-06-02", "application_end": "2026-07-08", "exam_date": "2026-07-18", "result_date": "2026-08-03"},
+        {"year": 2026, "round": "8월 IBT", "application_start": "2026-07-09", "application_end": "2026-08-13", "exam_date": "2026-08-23", "result_date": "2026-09-07"},
+        {"year": 2026, "round": "8월 PBT", "application_start": "2026-07-09", "application_end": "2026-07-27", "exam_date": "2026-08-23", "result_date": "2026-09-23"}
+      ]
+    },
+    {
+      "certificate_id": "hskk",
+      "certificate_name": "HSKK",
+      "aliases": ["중국어 말하기 시험", "HSK Speaking"],
+      "category": "어학",
+      "related_jobs": ["중국계기업", "해외영업", "무역", "서비스"],
+      "keywords": ["중국어", "말하기", "스피킹", "중국계기업", "무역"],
+      "description": "중국어 말하기 능력을 초급·중급·고급으로 평가하는 시험입니다.",
+      "source_name": "HSK한국사무국",
+      "source_url": "https://www.hsk.or.kr/",
+      "exams": [
+        {"year": 2026, "round": "7월 시험", "application_start": "2026-06-02", "application_end": "2026-07-08", "exam_date": "2026-07-18", "result_date": "2026-08-07"},
+        {"year": 2026, "round": "8월 시험", "application_start": "2026-07-09", "application_end": "2026-08-13", "exam_date": "2026-08-23", "result_date": "2026-09-14"}
+      ]
+    },
+    {
+      "certificate_id": "tsc",
+      "certificate_name": "TSC",
+      "aliases": ["티에스씨", "중국어 말하기"],
+      "category": "어학",
+      "related_jobs": ["중국계기업", "해외영업", "무역", "관광"],
+      "keywords": ["중국어", "말하기", "스피킹", "중국", "해외영업"],
+      "description": "YBM이 시행하는 중국어 말하기 능력 평가입니다.",
+      "source_name": "YBM 어학시험",
+      "source_url": "https://www.toeic.co.kr/",
+      "schedule_note": "정기시험이 월별로 운영되며 정확한 접수일과 시험장은 공식 사이트에서 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "flex",
+      "certificate_name": "FLEX",
+      "aliases": ["플렉스", "외국어능력시험"],
+      "category": "어학",
+      "related_jobs": ["공기업", "공무원", "외교", "해외영업", "무역"],
+      "keywords": ["영어", "중국어", "일본어", "프랑스어", "독일어", "스페인어", "러시아어"],
+      "description": "한국외국어대학교가 시행하는 다국어 외국어능력 평가입니다.",
+      "source_name": "한국외국어대학교 FLEX센터",
+      "source_url": "https://flex.hufs.ac.kr/",
+      "exams": [
+        {"year": 2026, "round": "제1회", "application_start": "2026-04-30", "application_end": "2026-05-06", "exam_date": "2026-05-31", "result_date": null},
+        {"year": 2026, "round": "제2회", "application_start": "2026-10-08", "application_end": "2026-10-14", "exam_date": "2026-11-08", "result_date": null}
+      ]
+    },
+    {
+      "certificate_id": "delf_dalf",
+      "certificate_name": "DELF·DALF",
+      "aliases": ["DELF", "DALF", "델프", "달프", "프랑스어 자격증"],
+      "category": "어학",
+      "related_jobs": ["프랑스계기업", "해외영업", "외교", "관광"],
+      "keywords": ["프랑스어", "프랑스", "유럽", "해외영업", "외교"],
+      "description": "프랑스 교육부가 발급하는 국제 공인 프랑스어 능력 자격입니다.",
+      "source_name": "주한 프랑스문화원",
+      "source_url": "https://www.coree-culture.org/",
+      "schedule_note": "한국 내 시험센터와 등급별 일정이 다르므로 주한 프랑스문화원 공지를 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "goethe",
+      "certificate_name": "Goethe-Zertifikat",
+      "aliases": ["괴테 자격증", "괴테 시험", "독일어 자격증"],
+      "category": "어학",
+      "related_jobs": ["독일계기업", "해외영업", "연구직", "관광"],
+      "keywords": ["독일어", "독일", "유럽", "해외영업", "연구"],
+      "description": "Goethe-Institut가 시행하는 A1~C2 국제 공인 독일어 시험입니다.",
+      "source_name": "Goethe-Institut Korea",
+      "source_url": "https://www.goethe.de/ins/kr/ko/spr/prf.html",
+      "schedule_note": "등급과 시험센터별 접수 기간·시험일이 다릅니다. 원하는 등급의 시험 페이지에서 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "dele",
+      "certificate_name": "DELE",
+      "aliases": ["델레", "스페인어 자격증", "Diplomas de Español"],
+      "category": "어학",
+      "related_jobs": ["스페인어권 기업", "해외영업", "무역", "관광"],
+      "keywords": ["스페인어", "스페인", "중남미", "해외영업", "무역"],
+      "description": "스페인 교육부 명의로 발급되는 국제 공인 스페인어 능력 자격입니다.",
+      "source_name": "Instituto Cervantes",
+      "source_url": "https://examenes.cervantes.es/es/dele/cuando",
+      "schedule_note": "등급과 시험센터별 시행 회차가 다릅니다. 한국 시험센터의 접수 가능 일정을 확인해 주세요.",
+      "exams": []
+    },
+    {
+      "certificate_id": "topik",
+      "certificate_name": "TOPIK",
+      "aliases": ["한국어능력시험", "토픽", "TOPIK I", "TOPIK II"],
+      "category": "어학",
+      "related_jobs": ["국내취업", "유학", "외국인 채용", "통번역"],
+      "keywords": ["한국어", "외국인", "국내취업", "유학", "통번역"],
+      "description": "외국인과 재외동포의 한국어 사용 능력을 평가하는 국가 공인 시험입니다.",
+      "source_name": "국립국제교육원 TOPIK",
+      "source_url": "https://www.topik.go.kr/",
+      "schedule_note": "국내·국외 시행 지역과 PBT·IBT 방식에 따라 일정이 다르므로 공식 시행계획을 확인해 주세요.",
+      "exams": []
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from tools.spec_recommend import NAME, _recent_recommendation_names, run
 
@@ -117,3 +119,34 @@ def test_recent_recommendations_are_available_for_ui() -> None:
     names = _recent_recommendation_names(profile)
     assert len(names) == 3
     assert "SQL 개발자" in names
+
+
+def test_common_language_test_aliases_are_supported() -> None:
+    profile = DummyProfile(target_job="해외영업")
+    assert "OPIc" in run(profile, "오픽 시험 일정 알려줘")
+    assert "TOEIC Speaking" in run(profile, "토스 일정 알려줘")
+    assert "TOEIC" in run(profile, "토익 일정 알려줘")
+
+
+def test_language_category_list_contains_major_tests() -> None:
+    result = run(DummyProfile(target_job="해외영업"), "어학시험 목록 알려줘")
+    for name in ("TOEIC", "OPIc", "JLPT", "HSK", "FLEX"):
+        assert name in result
+
+
+def test_frequent_language_test_shows_official_schedule_guidance() -> None:
+    result = run(DummyProfile(target_job="해외영업"), "토플 시험 일정 알려줘")
+    assert "TOEFL iBT" in result
+    assert "수시" in result
+    assert "공식 출처" in result
+
+
+def test_language_dataset_has_unique_ids_and_official_sources() -> None:
+    path = Path(__file__).resolve().parents[1] / "data" / "raw" / "language_tests.json"
+    certificates = json.loads(path.read_text(encoding="utf-8"))["certificates"]
+    certificate_ids = [item["certificate_id"] for item in certificates]
+
+    assert len(certificates) >= 18
+    assert len(certificate_ids) == len(set(certificate_ids))
+    assert all(item["category"] == "어학" for item in certificates)
+    assert all(str(item["source_url"]).startswith("https://") for item in certificates)

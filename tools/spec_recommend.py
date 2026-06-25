@@ -13,6 +13,9 @@ if TYPE_CHECKING:
 NAME = "자격증 추천"
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "raw" / "certs.json"
+LANGUAGE_DATA_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "raw" / "language_tests.json"
+)
 MAX_RECOMMENDATIONS = 3
 _RECOMMENDATION_HISTORY: OrderedDict[str, dict[str, list[str]]] = OrderedDict()
 _MAX_HISTORY = 200
@@ -23,6 +26,19 @@ CATEGORY_ALIASES = {
     "IT": {"it", "개발", "개발자", "백엔드", "서버", "인프라", "네트워크"},
     "디지털": {"디지털", "핀테크", "플랫폼", "ai", "인공지능"},
     "사무·ERP": {"사무", "엑셀", "erp", "경영지원", "회계", "인사"},
+    "어학": {
+        "어학",
+        "외국어",
+        "영어",
+        "일본어",
+        "중국어",
+        "프랑스어",
+        "독일어",
+        "스페인어",
+        "토익",
+        "오픽",
+        "토스",
+    },
 }
 
 SCHEDULE_WORDS = {
@@ -61,6 +77,20 @@ def _load_certificates() -> dict[str, Any]:
 
     if not isinstance(payload, dict) or not isinstance(payload.get("certificates"), list):
         return {"last_updated": None, "certificates": []}
+
+    try:
+        language_payload = json.loads(LANGUAGE_DATA_PATH.read_text(encoding="utf-8"))
+        language_tests = language_payload.get("certificates", [])
+        if isinstance(language_tests, list):
+            payload["certificates"].extend(language_tests)
+        language_updated = language_payload.get("last_updated")
+        if language_updated and (
+            not payload.get("last_updated")
+            or str(language_updated) > str(payload["last_updated"])
+        ):
+            payload["last_updated"] = language_updated
+    except (OSError, json.JSONDecodeError, AttributeError):
+        pass
     return payload
 
 
@@ -514,12 +544,17 @@ def _format_schedule(
         updated_text = "확인되지 않음"
 
     if not schedules:
+        schedule_note = certificate.get("schedule_note")
         return "\n".join(
             [
                 f"## {certificate['certificate_name']} {year}년 시험 일정",
                 "",
-                "현재 저장된 데이터에서 시험 일정을 확인할 수 없습니다.",
-                "공식 사이트에서 최신 일정을 확인해 주세요.",
+                (
+                    str(schedule_note)
+                    if schedule_note
+                    else "현재 저장된 데이터에서 시험 일정을 확인할 수 없습니다."
+                ),
+                "지역·센터별 잔여 좌석과 접수 기간은 공식 사이트에서 확인해 주세요.",
                 "",
                 f"- **시행기관:** {certificate.get('source_name', '확인 필요')}",
                 f"- **공식 출처:** {source_link}",
@@ -605,16 +640,16 @@ def run(profile: UserProfile, user_input: str) -> str:
     if certificate and _has_any(user_input, SCHEDULE_WORDS):
         return _format_schedule(certificate, payload, date.today().year)
 
+    category = _selected_category(user_input)
+    if category and _has_any(user_input, LIST_WORDS):
+        return _format_category_list(category, certificates)
+
     if _has_any(user_input, SCHEDULE_WORDS):
         referenced_schedule = _resolve_recommended_schedule_request(
             profile, user_input, certificates, payload
         )
         if referenced_schedule:
             return referenced_schedule
-
-    category = _selected_category(user_input)
-    if category and _has_any(user_input, LIST_WORDS):
-        return _format_category_list(category, certificates)
 
     is_more = _has_any(user_input, MORE_WORDS)
     if (

@@ -6,13 +6,20 @@ from pathlib import Path
 from langchain_core.documents import Document
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA_PATH = ROOT / "data" / "raw" / "certs.json"
+DATA_PATHS = [
+    ROOT / "data" / "raw" / "certs.json",
+    ROOT / "data" / "raw" / "language_tests.json",
+]
 
 
 def build_documents() -> list[Document]:
-    payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     documents = []
-    for certificate in payload["certificates"]:
+    certificates = []
+    for data_path in DATA_PATHS:
+        if data_path.exists():
+            payload = json.loads(data_path.read_text(encoding="utf-8"))
+            certificates.extend(payload.get("certificates", []))
+    for certificate in certificates:
         content = "\n".join(
             [
                 f"자격증명: {certificate['certificate_name']}",

@@ -9,6 +9,7 @@ tools/spec_recommend.py
 ingest/certs/build_certs_data.py
 ingest/certs/index_certs.py
 data/raw/certs.json
+data/raw/language_tests.json
 tests/test_spec_recommend.py
 ```
 
@@ -30,6 +31,9 @@ result = run(profile, "SQLD 올해 시험 일정 알려줘")
 - 희망 직무 기반 자격증 최대 3개 추천
 - 추가 추천 및 보유 자격증 제외
 - SQLD, ADsP, 투운사, 정처기 등 약칭 인식
+- TOEIC, TOEIC Speaking(토스), OPIc, TEPS, G-TELP
+- TOEFL, IELTS, JLPT, JPT, SJPT, HSK, HSKK, TSC, FLEX
+- DELF·DALF, Goethe-Zertifikat, DELE, TOPIK 등 어학시험 검색
 - 최근 추천 항목과 후속 질문 연결
 - 올해 예정 시험과 종료 시험 구분
 - 접수 기간, 시험일, 합격자 발표일 표시
@@ -45,6 +49,10 @@ uv run python ingest/certs/build_certs_data.py
 ```
 
 데이터자격시험과 금융투자협회의 공개 연간 일정을 수집하여 `data/raw/certs.json`에 저장합니다. 배포 앱에서는 실시간 크롤링하지 않습니다.
+
+어학시험은 공식 시험기관별 일정 구조가 서로 다르고 일부 시험은 센터별 수시
+시행이므로 `data/raw/language_tests.json`에서 별도로 관리합니다. 고정 일정이
+없는 시험은 공식 접수 페이지와 `수시 시행` 안내를 제공합니다.
 
 ## Chroma 인덱싱
 
