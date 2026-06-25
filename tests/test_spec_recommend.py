@@ -54,6 +54,29 @@ def test_missing_input_asks_for_job() -> None:
     assert "어떤 직무" in result
 
 
+def test_generic_recommendation_requires_target_job() -> None:
+    profile = DummyProfile(
+        session_id="missing-target-session",
+        target_job="",
+        skills=[],
+        experiences=[],
+    )
+    result = run(profile, "자격증 추천해줘")
+    assert "희망 직무" in result
+    assert "데이터 분석가" in result
+
+
+def test_job_in_message_can_start_recommendation_without_profile_job() -> None:
+    profile = DummyProfile(
+        session_id="job-message-session",
+        target_job="",
+        skills=[],
+        experiences=[],
+    )
+    result = run(profile, "데이터 분석가 자격증 추천해줘")
+    assert "SQL 개발자" in result
+
+
 def test_more_recommendations_avoid_previous_items() -> None:
     profile = DummyProfile(session_id="more-session")
     first = run(profile, "데이터 분석 자격증 추천해줘")

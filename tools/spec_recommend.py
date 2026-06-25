@@ -245,6 +245,39 @@ def _profile_query(profile: Any, user_input: str) -> str:
     return _normalize_text(values)
 
 
+def _contains_job_signal(
+    user_input: str, certificates: list[dict[str, Any]]
+) -> bool:
+    normalized = _normalize_text(user_input)
+    common_jobs = {
+        "데이터 분석가",
+        "데이터 엔지니어",
+        "백엔드 개발",
+        "개발자",
+        "은행",
+        "금융영업",
+        "pb",
+        "wm",
+        "자산운용",
+        "애널리스트",
+        "리스크관리",
+        "재무",
+        "핀테크",
+        "금융 it",
+        "인프라",
+        "네트워크",
+        "경영지원",
+    }
+    job_terms = set(common_jobs)
+    for certificate in certificates:
+        job_terms.update(certificate.get("related_jobs", []))
+    return any(
+        _normalize_text(term) in normalized
+        for term in job_terms
+        if _normalize_text(term)
+    )
+
+
 def _owned_certificate_ids(
     profile: Any, certificates: list[dict[str, Any]]
 ) -> set[str]:
@@ -584,6 +617,18 @@ def run(profile: UserProfile, user_input: str) -> str:
         return _format_category_list(category, certificates)
 
     is_more = _has_any(user_input, MORE_WORDS)
+    if (
+        not str(_profile_value(profile, "target_job") or "").strip()
+        and not is_more
+        and not _last_recommended(profile)
+        and not _contains_job_signal(user_input, certificates)
+    ):
+        return (
+            "자격증을 추천하려면 먼저 **희망 직무**가 필요해요.\n\n"
+            "채팅창에 준비 중인 직무를 입력해 주세요.\n"
+            "예: **데이터 분석가**, **은행 IT**, **증권 자산운용**, **백엔드 개발자**"
+        )
+
     exclude = _already_recommended(profile) if is_more else set()
     recommendations = _score_certificates(
         profile=profile,
