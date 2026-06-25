@@ -218,3 +218,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 .claude
+
+# Chroma 벡터DB — 런타임에 자동 생성되는 로컬 캐시, 소스코드 아님
+chroma_db/
