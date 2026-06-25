@@ -35,6 +35,8 @@ result = run(profile, "SQLD 올해 시험 일정 알려줘")
 - TOEFL, IELTS, JLPT, JPT, SJPT, HSK, HSKK, TSC, FLEX
 - DELF·DALF, Goethe-Zertifikat, DELE, TOPIK 등 어학시험 검색
 - 최근 추천 항목과 후속 질문 연결
+- `그 자격증`, `3`, `3번`, `세 번째`, 자격증명만 입력하는 짧은 후속 답변 처리
+- 여러 추천 중 일정 선택을 요청한 상태를 사용자 세션별로 유지
 - 올해 예정 시험과 종료 시험 구분
 - 접수 기간, 시험일, 합격자 발표일 표시
 - 공식 출처와 데이터 기준일 표시

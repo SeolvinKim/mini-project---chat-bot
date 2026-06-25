@@ -113,6 +113,53 @@ def test_ordinal_follow_up_opens_recent_schedule() -> None:
     assert "원서접수 기간" in result
 
 
+def test_bare_number_selects_from_pending_schedule_choices() -> None:
+    profile = DummyProfile(session_id="bare-number-session")
+    first = run(profile, "데이터 분석 자격증 추천해줘")
+    run(profile, "그 자격증 시험 일정 알려줘")
+    result = run(profile, "3")
+    recommended_names = [
+        name
+        for name in ("SQL 개발자", "데이터분석 준전문가", "빅데이터분석기사")
+        if name in first
+    ]
+    assert len(recommended_names) == 3
+    assert recommended_names[2] in result
+    assert "시험 일정" in result
+
+
+def test_bare_certificate_name_selects_from_pending_choices() -> None:
+    profile = DummyProfile(session_id="bare-name-session")
+    first = run(profile, "데이터 분석 자격증 추천해줘")
+    run(profile, "추천한 자격증 일정 알려줘")
+    selected_name = next(
+        name
+        for name in ("SQL 개발자", "데이터분석 준전문가", "빅데이터분석기사")
+        if name in first
+    )
+    result = run(profile, selected_name)
+    assert selected_name in result
+    assert "시험 일정" in result
+
+
+def test_that_certificate_uses_last_focused_certificate() -> None:
+    profile = DummyProfile(session_id="focused-certificate-session")
+    run(profile, "SQLD 시험 일정 알려줘")
+    result = run(profile, "그 자격증 시험 일정 다시 알려줘")
+    assert "SQL 개발자" in result
+    assert "시험 일정" in result
+
+
+def test_invalid_bare_number_keeps_pending_context() -> None:
+    profile = DummyProfile(session_id="invalid-number-session")
+    run(profile, "데이터 분석 자격증 추천해줘")
+    run(profile, "그 자격증 시험 일정 알려줘")
+    invalid = run(profile, "4")
+    valid = run(profile, "2")
+    assert "1번부터 3번" in invalid
+    assert "시험 일정" in valid
+
+
 def test_recent_recommendations_are_available_for_ui() -> None:
     profile = DummyProfile(session_id="ui-selector-session")
     run(profile, "데이터 분석 자격증 추천해줘")
