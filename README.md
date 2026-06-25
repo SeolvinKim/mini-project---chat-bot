@@ -65,3 +65,20 @@ uv run python app/main.py
 - Build: `pip install uv && uv sync --frozen`
 - Start: `uv run python app/main.py`
 - 환경변수: `OPENAI_API_KEY`
+
+## vtuber (VRM 아바타 프론트엔드)
+
+`vtuber/`는 웹캠 모션 트래킹 + VRM 아바타가 `app/api.py`(FastAPI)와 HTTP로 통신하는 별도 Vite 프로젝트입니다. `POST /api/chat`으로 답변을 받고 `POST /api/tts`로 음성을 합성해 립싱크합니다.
+
+```powershell
+# 1) API 서버 (별도 터미널)
+uv run uvicorn app.api:app --port 8000
+
+# 2) 프론트엔드
+cd vtuber
+npm install
+Copy-Item .env.example .env   # 필요 시 VITE_CHAT_API 수정
+npm run dev
+```
+
+[http://localhost:5173](http://localhost:5173)으로 접속합니다. (Gradio 앱의 7860과는 별개 화면입니다.)

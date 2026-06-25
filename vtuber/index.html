@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalidokit Avatar</title>
+  </head>
+  <body>
+    <div id="profile-modal" class="modal-overlay">
+      <form id="profile-form" class="modal-card">
+        <h2>시작 전에 알려주세요</h2>
+        <p class="modal-sub">입력한 정보는 직무 추천·자소서·면접·자격증 답변에 함께 활용돼요.</p>
+        <label>희망 직무 (모르면 비워두고 직무 추천부터 받아도 돼요)
+          <input id="p-target-job" type="text" placeholder="예: 은행 IT, 데이터 분석가" />
+        </label>
+        <label>학력·전공
+          <input id="p-education" type="text" placeholder="예: 경영학과, 컴퓨터공학과" />
+        </label>
+        <label>보유 기술 (쉼표로 구분)
+          <input id="p-skills" type="text" placeholder="예: Python, SQL" />
+        </label>
+        <label>프로젝트·경험 (쉼표로 구분)
+          <input id="p-experiences" type="text" placeholder="예: 학회 프로젝트, 공모전" />
+        </label>
+        <label>보유 자격증 (쉼표로 구분)
+          <input id="p-certs" type="text" placeholder="예: SQLD, 컴활" />
+        </label>
+        <button type="submit" class="btn modal-submit">시작하기 →</button>
+      </form>
+    </div>
+    <div id="app">
+      <div id="stage">
+        <!-- 링크 배경 iframe: VRM 캔버스(alpha) 아래에 렌더링됨 -->
+        <iframe id="link-frame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" title="링크 미리보기"></iframe>
+        <button id="link-close" title="닫기" aria-label="링크 닫기">×</button>
+
+        <canvas id="three"></canvas>
+
+        <div id="preview">
+          <video id="video" autoplay muted playsinline></video>
+        </div>
+
+        <div id="hud">
+          <div id="status">초기화 중…</div>
+          <label class="btn">
+            VRM 불러오기
+            <input id="vrm-file" type="file" accept=".vrm" hidden />
+          </label>
+          <button id="cam-btn" class="btn">웹캠 시작</button>
+        </div>
+
+        <div id="subtitle"></div>
+      </div>
+
+      <aside id="chat-panel">
+        <div id="tool-bar">
+          <button class="tool-chip active" data-tool="">자유 대화</button>
+          <button class="tool-chip" data-tool="job">🧭 직무 추천</button>
+          <button class="tool-chip" data-tool="cover_letter">✍️ 자소서 피드백</button>
+          <button class="tool-chip" data-tool="interview">🎤 면접 질문</button>
+          <button class="tool-chip" data-tool="certificate">🏅 자격증 추천</button>
+        </div>
+        <div id="chat-log"></div>
+        <div id="chatbar">
+          <input id="chat-input" type="text" placeholder="캐릭터에게 말 걸기…" autocomplete="off" />
+          <button id="chat-send" class="btn">보내기</button>
+        </div>
+      </aside>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

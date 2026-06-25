@@ -42,9 +42,11 @@
 ## 구조
 
 - `app/main.py` — Gradio 셸. 온보딩 → 채팅. `TOOLS` 레지스트리로 4개 Tool을 동적 로딩.
+- `app/api.py` — FastAPI HTTP API (`/api/chat`, `/api/tts`). `vtuber/` 프론트엔드가 호출. `app/main.py`와 별도 프로세스(`uv run uvicorn app.api:app --port 8000`).
 - `core/` — 공유 인프라 (`schema.py`, `base.py`, `llm.py`, `vectorstore.py`).
 - `tools/<name>.py` — 기능별 Tool. 각자 `NAME`과 `run(profile, user_input) -> str` 제공.
 - `data/raw/certs.json` — 자격증/시험일정 데이터.
+- `vtuber/` — Vite/three.js VRM 아바타 프론트엔드. `npm install && npm run dev` (포트 5173), `app/api.py`를 8000에 띄운 상태여야 응답한다. 자세한 실행법은 README.md 참고.
 
 ## Tool 작성 계약 ⚠️ 반드시 준수
 

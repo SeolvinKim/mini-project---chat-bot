@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Callable
@@ -82,6 +83,81 @@ def _keyword_route(message: str) -> str | None:
     return None
 
 
+CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4o-mini")
+
+_SYSTEM_PROMPT = (
+    "당신은 취업 준비를 돕는 친절한 AI 어시스턴트입니다. "
+    "직무 추천, 자기소개서 피드백, 면접 준비, 자격증 추천을 전문으로 합니다. "
+    "한국어로 간결하고 실용적으로 답하세요."
+)
+
+
+def _general_chat(message: str, history: list) -> str:
+    """키워드 분류에 걸리지 않은 일반 대화를 GPT로 처리. API 키 없으면 안내 문구 반환."""
+    if not os.getenv("OPENAI_API_KEY"):
+        return (
+            "어떤 준비를 도와드릴까요? 직무 추천, 자소서 피드백, 면접 질문, "
+            "자격증 중에서 편하게 말씀해 주세요."
+        )
+
+    from openai import OpenAI
+
+    client = OpenAI()
+    messages: list[dict[str, str]] = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    for h in history[-8:]:  # 최근 8개 메시지만 컨텍스트로
+        role = h.role if hasattr(h, "role") else h.get("role", "")
+        content = h.content if hasattr(h, "content") else h.get("content", "")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": message})
+
+    try:
+        resp = client.chat.completions.create(
+            model=CHAT_MODEL,
+            messages=messages,  # type: ignore[arg-type]
+            max_tokens=600,
+        )
+        return resp.choices[0].message.content or "응답을 생성하지 못했어요."
+    except Exception:
+        return (
+            "어떤 준비를 도와드릴까요? 직무 추천, 자소서 피드백, 면접 질문, "
+            "자격증 중에서 편하게 말씀해 주세요."
+        )
+
+
+def _make_tts_text(full: str) -> str:
+    """TTS용 핵심 1~2문장 요약. API 키 없거나 텍스트가 짧으면 첫 문장 추출로 폴백."""
+    clean = re.sub(r'[#*_`~>]', '', full)
+    clean = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', clean)
+    clean = re.sub(r'^\s*\|.*', '', clean, flags=re.MULTILINE)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+
+    def first_sentence(text: str, limit: int = 120) -> str:
+        parts = re.split(r'(?<=[.!?])\s+', text)
+        return parts[0][:limit] if parts else text[:limit]
+
+    if len(clean) < 60 or not os.getenv("OPENAI_API_KEY"):
+        return first_sentence(clean)
+
+    from openai import OpenAI
+
+    try:
+        resp = OpenAI().chat.completions.create(
+            model=CHAT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "TTS로 읽을 핵심 1~2문장(50자 이내)으로 요약하세요. 존댓말, 마크다운 없이.",
+                },
+                {"role": "user", "content": clean[:800]},
+            ],
+            max_tokens=70,
+        )
+        return resp.choices[0].message.content or first_sentence(clean)
+    except Exception:
+        return first_sentence(clean)
+
+
 app = FastAPI(title="job-prep-chatbot API")
 
 # 개발 단계에서는 모든 origin 허용. 배포 시 vtuber origin으로 좁힌다.
@@ -102,15 +178,23 @@ class ProfileIn(BaseModel):
     certs: list[str] = Field(default_factory=list)
 
 
+class HistoryMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
 class ChatIn(BaseModel):
     message: str
     # 명시하면 해당 Tool로 직행, None이면 키워드 폴백 분류.
     tool: str | None = None
     profile: ProfileIn = Field(default_factory=ProfileIn)
+    # 이전 대화 기록 (일반 대화에서 GPT 컨텍스트로 활용)
+    history: list[HistoryMessage] = Field(default_factory=list)
 
 
 class ChatOut(BaseModel):
     text: str
+    tts_text: str  # TTS용 핵심 요약 (채팅 버블엔 text, 음성엔 tts_text)
     tool: str
     label: str
 
@@ -134,18 +218,12 @@ def tools() -> list[dict[str, str]]:
 def chat(body: ChatIn) -> ChatOut:
     message = (body.message or "").strip()
     if not message:
-        return ChatOut(text="질문을 입력해 주세요.", tool="", label="")
+        return ChatOut(text="질문을 입력해 주세요.", tts_text="질문을 입력해 주세요.", tool="", label="")
 
     tool_key = body.tool if body.tool in TOOL_MAP else _keyword_route(message)
     if tool_key is None:
-        return ChatOut(
-            text=(
-                "어떤 준비를 도와드릴까요? 직무 추천, 자소서 피드백, 면접 질문, "
-                "자격증 중에서 편하게 말씀해 주세요."
-            ),
-            tool="",
-            label="일반 대화",
-        )
+        text = _general_chat(message, body.history)
+        return ChatOut(text=text, tts_text=_make_tts_text(text), tool="", label="일반 대화")
 
     _, label, _icon = TOOL_MAP[tool_key]
     run = _load_run(tool_key)
@@ -158,7 +236,7 @@ def chat(body: ChatIn) -> ChatOut:
         except Exception:
             text = "요청을 처리하지 못했어요. 입력을 확인하고 다시 시도해 주세요."
 
-    return ChatOut(text=text, tool=tool_key, label=label)
+    return ChatOut(text=text, tts_text=_make_tts_text(text), tool=tool_key, label=label)
 
 
 @app.post("/api/tts")
