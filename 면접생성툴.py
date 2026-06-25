@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -794,8 +795,20 @@ with gr.Blocks(title=APP_TITLE) as demo:
     )
 
 
+def find_available_port(start_port: int, attempts: int = 100) -> int:
+    for port in range(start_port, start_port + attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("127.0.0.1", port))
+            except OSError:
+                continue
+            return port
+    raise OSError(f"Cannot find empty port in range: {start_port}-{start_port + attempts - 1}")
+
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "7860"))
+    port = find_available_port(int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", "7860"))))
     demo.queue(default_concurrency_limit=8).launch(
         server_name="0.0.0.0",
         server_port=port,
