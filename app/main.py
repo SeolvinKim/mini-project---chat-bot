@@ -171,14 +171,20 @@ def _route_message(
     if not os.getenv("OPENAI_API_KEY"):
         return _keyword_route(message, previous_tool)
 
+    # 키워드로 명확히 분류되면 LLM 라우팅(round-trip)을 건너뛴다.
+    # 모호한 질문(general)일 때만 라우터 LLM이 문맥까지 보고 분류·재작성한다.
+    keyword_decision = _keyword_route(message, previous_tool)
+    if keyword_decision.tool != "general":
+        return keyword_decision
+
     recent = history[-6:]
     conversation = "\n".join(
         f"{item.get('role', 'user')}: {item.get('content', '')}" for item in recent
     )
     try:
-        from core.llm import get_llm
+        from core.llm import get_router_llm
 
-        router = get_llm().with_structured_output(RouteDecision)
+        router = get_router_llm().with_structured_output(RouteDecision)
         return router.invoke(
             [
                 (

@@ -9,6 +9,35 @@
   - 실행: `uv run python app/main.py`
   - 테스트: `uv run python -m pytest`
 - Python 3.11~3.12.
+- API 키: `OPENAI_API_KEY`(라우팅·생성·임베딩 모두). `.env.example` 참고.
+
+## 모델 구조 (2층 + 역할별 모델)
+
+```
+사용자 입력
+  │
+  ▼
+[1층 라우팅] 어떤 Tool? (app/main.py: _route_message)
+  │  코드 키워드 우선(_keyword_route) → 명확하면 LLM 생략
+  │  모호하면 라우터 LLM 호출(분류 + 질문 재작성)
+  ▼
+[2층 대답] 각 Tool이 답을 만드는 방식
+  ├─ certificate : 규칙기반 (LLM 불필요)
+  ├─ cover_letter: 생성 LLM 필요 → get_generation_llm()
+  ├─ interview   : 생성 LLM 필요 → get_generation_llm()
+  └─ job         : 하이브리드 (키워드 + 필요 시 생성 LLM)
+```
+
+`core/llm.py` 헬퍼:
+
+| 함수 | 모델 | 용도 |
+|---|---|---|
+| `get_router_llm()` | `gpt-5.4-mini` | 라우팅/분류 (빠르고 저렴, temperature=0) |
+| `get_generation_llm()` | `gpt-5.4` | 콘텐츠 생성 (자소서·면접·직무) |
+| `get_embeddings()` | `text-embedding-3-small` | RAG 임베딩 |
+
+- **생성 Tool은 `get_generation_llm()`을 쓰세요.** 라우팅용 mini 모델로 콘텐츠를 생성하지 마세요(품질 저하).
+- 라우팅은 `app/main.py`가 담당하므로 Tool은 라우팅 LLM을 직접 부를 일이 없습니다.
 
 ## 구조
 
