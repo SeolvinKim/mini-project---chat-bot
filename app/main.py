@@ -6,10 +6,11 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 import gradio as gr
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -26,45 +27,21 @@ class ToolSpec:
     module: str
     label: str
     icon: str
-    description: str
-    examples: tuple[str, ...]
 
 
 TOOLS = (
-    ToolSpec(
-        "job",
-        "tools.recommend_job",
-        "직무 추천",
-        "🧭",
-        "내 경험과 역량에 맞는 금융권 직무를 찾아요.",
-        ("금융 데이터 직무를 추천해줘", "고객 상담을 좋아하는데 어떤 직무가 맞을까?"),
-    ),
-    ToolSpec(
-        "cover_letter",
-        "tools.cover_letter",
-        "자소서 피드백",
-        "✍️",
-        "자소서의 구체성·직무 연관성·가독성을 점검해요.",
-        ("은행 디지털 직무 지원동기를 봐줘", "이 자소서를 STAR 구조로 피드백해줘"),
-    ),
-    ToolSpec(
-        "interview",
-        "tools.interview",
-        "면접 질문",
-        "🎤",
-        "직무와 프로젝트를 바탕으로 예상 질문을 만들어요.",
-        ("데이터 분석 직무 면접 질문을 만들어줘", "프로젝트 기반 압박 질문을 내줘"),
-    ),
-    ToolSpec(
-        "certificate",
-        "tools.spec_recommend",
-        "자격증 추천",
-        "🏅",
-        "직무에 맞는 자격증과 올해 시험 일정을 안내해요.",
-        ("데이터 분석 자격증을 추천해줘", "SQLD 올해 시험 일정 알려줘"),
-    ),
+    ToolSpec("job", "tools.recommend_job", "직무 추천", "🧭"),
+    ToolSpec("cover_letter", "tools.cover_letter", "자소서 피드백", "✍️"),
+    ToolSpec("interview", "tools.interview", "면접 질문", "🎤"),
+    ToolSpec("certificate", "tools.spec_recommend", "자격증 추천", "🏅"),
 )
 TOOL_MAP = {tool.key: tool for tool in TOOLS}
+
+
+class RouteDecision(BaseModel):
+    tool: Literal["job", "cover_letter", "interview", "certificate", "general"]
+    standalone_query: str
+    assistant_reply: str = ""
 
 
 def _split(value: str) -> list[str]:
@@ -84,10 +61,9 @@ def _profile_from_state(state: dict[str, object]) -> UserProfile:
 def _load_run(spec: ToolSpec) -> Callable[[UserProfile, str], str] | None:
     try:
         module = importlib.import_module(spec.module)
-        run = getattr(module, "run")
+        return getattr(module, "run")
     except (ImportError, AttributeError):
         return None
-    return run
 
 
 def enter_chat(
@@ -112,12 +88,6 @@ def enter_chat(
     return profile, gr.update(visible=False), gr.update(visible=True), summary, ""
 
 
-def select_tool(tool_key: str) -> tuple[str, str, gr.Radio, str]:
-    spec = TOOL_MAP[tool_key]
-    prompt = f"{spec.icon} **{spec.label}** · {spec.description}"
-    return tool_key, prompt, gr.Radio(choices=list(spec.examples), value=None), ""
-
-
 def _extract_choices(answer: str) -> list[str]:
     choices = []
     for line in answer.splitlines():
@@ -127,100 +97,187 @@ def _extract_choices(answer: str) -> list[str]:
     return choices[:5]
 
 
-def _contextualize_message(
+def _keyword_route(message: str, previous_tool: str = "") -> RouteDecision:
+    normalized = message.lower()
+    keyword_groups = {
+        "certificate": (
+            "자격증",
+            "시험 일정",
+            "원서접수",
+            "sqld",
+            "adsp",
+            "투운사",
+            "정처기",
+            "컴활",
+            "기사 시험",
+        ),
+        "cover_letter": (
+            "자소서",
+            "자기소개서",
+            "지원동기",
+            "첨삭",
+            "문장 수정",
+            "글자 수",
+            "star 구조",
+        ),
+        "interview": (
+            "면접",
+            "예상 질문",
+            "압박 질문",
+            "답변 연습",
+            "면접관",
+        ),
+        "job": (
+            "직무",
+            "진로",
+            "적성",
+            "어떤 일",
+            "무슨 일",
+            "취업 분야",
+            "직업 추천",
+        ),
+    }
+    for tool, keywords in keyword_groups.items():
+        if any(keyword in normalized for keyword in keywords):
+            return RouteDecision(tool=tool, standalone_query=message)
+    if previous_tool in TOOL_MAP and any(
+        word in normalized
+        for word in ("그거", "그것", "아까", "더", "다른", "자세히", "이어서")
+    ):
+        return RouteDecision(tool=previous_tool, standalone_query=message)
+    return RouteDecision(
+        tool="general",
+        standalone_query=message,
+        assistant_reply=(
+            "어떤 취업 준비를 도와드릴까요? "
+            "직무 추천, 자소서 피드백, 면접 질문, 자격증 중 편하게 말씀해 주세요."
+        ),
+    )
+
+
+def _route_message(
     message: str,
     history: list[dict[str, str]],
     profile: UserProfile,
-    active_tool: str,
-) -> str:
-    if not os.getenv("OPENAI_API_KEY") or not history:
-        return message
+    previous_tool: str = "",
+) -> RouteDecision:
+    if not os.getenv("OPENAI_API_KEY"):
+        return _keyword_route(message, previous_tool)
 
     recent = history[-6:]
     conversation = "\n".join(
-        f"{item.get('role', 'user')}: {item.get('content', '')}"
-        for item in recent
+        f"{item.get('role', 'user')}: {item.get('content', '')}" for item in recent
     )
     try:
         from core.llm import get_llm
 
-        response = get_llm().invoke(
+        router = get_llm().with_structured_output(RouteDecision)
+        return router.invoke(
             [
                 (
                     "system",
-                    "당신은 취업준비 챗봇의 질문 정리기다. "
-                    "최근 대화를 참고해 사용자의 마지막 질문을 독립적으로 이해 가능한 "
-                    "한 문장으로 다시 쓴다. 답변하지 말고, 사실·날짜·경험을 새로 만들지 말며, "
-                    "사용자가 쓴 자격증명과 고유명사는 그대로 보존한다. 한국어 한 문장만 출력한다.",
+                    "당신은 취업준비 챗봇의 라우터다. 사용자의 마지막 질문을 최근 대화와 "
+                    "프로필을 참고해 정확히 하나로 분류한다.\n"
+                    "- job: 적성, 진로, 직무 탐색과 직무 추천\n"
+                    "- cover_letter: 자소서, 자기소개서, 지원동기 첨삭\n"
+                    "- interview: 면접 질문, 답변 연습, 압박 면접\n"
+                    "- certificate: 자격증 추천, 시험 일정, 접수일\n"
+                    "- general: 인사, 잡담, 정보 부족 또는 위 네 기능에 속하지 않음\n"
+                    "standalone_query에는 후속 표현을 풀어쓴 독립적인 한국어 질문을 작성한다. "
+                    "사용자가 말하지 않은 사실·경험·날짜를 만들지 말고 고유명사를 보존한다. "
+                    "general이면 assistant_reply에 친절한 짧은 답변 또는 필요한 추가 질문을 "
+                    "작성하고, 그 외에는 assistant_reply를 빈 문자열로 둔다.",
                 ),
                 (
                     "human",
-                    f"현재 Tool: {TOOL_MAP[active_tool].label}\n"
+                    f"직전 Tool: "
+                    f"{TOOL_MAP[previous_tool].label if previous_tool in TOOL_MAP else '없음'}\n"
                     f"희망 직무: {profile.target_job or '미입력'}\n"
-                    f"최근 대화:\n{conversation}\n"
+                    f"최근 대화:\n{conversation or '없음'}\n"
                     f"마지막 질문: {message}",
                 ),
             ]
         )
-        rewritten = str(response.content).strip()
-        return rewritten or message
     except Exception:
-        return message
+        return _keyword_route(message, previous_tool)
 
 
 def respond(
     message: str,
     history: list[dict[str, str]] | None,
     profile_state: dict[str, object],
-    active_tool: str,
-) -> tuple[str, list[dict[str, str]], gr.Radio]:
+    previous_tool: str,
+) -> tuple[str, list[dict[str, str]], gr.Radio, str, str]:
     history = list(history or [])
     message = (message or "").strip()
     if not message:
-        return "", history, gr.Radio()
+        return "", history, gr.Radio(), previous_tool, ""
 
-    spec = TOOL_MAP[active_tool]
-    run = _load_run(spec)
-    if run is None:
-        answer = (
-            f"아직 **{spec.label}** 코드가 이 브랜치에 병합되지 않았어요. "
-            "담당 Tool 브랜치를 병합하면 자동으로 활성화됩니다."
+    profile = _profile_from_state(profile_state)
+    decision = _route_message(message, history, profile, previous_tool)
+
+    if decision.tool == "general":
+        answer = decision.assistant_reply or (
+            "직무, 자소서, 면접, 자격증 중 어떤 준비를 도와드릴까요?"
         )
+        routed_tool = previous_tool
+        route_status = "💬 일반 대화"
     else:
-        try:
-            profile = _profile_from_state(profile_state)
-            standalone_message = _contextualize_message(
-                message, history, profile, active_tool
+        spec = TOOL_MAP[decision.tool]
+        run = _load_run(spec)
+        routed_tool = decision.tool
+        route_status = f"{spec.icon} **{spec.label}** 기능으로 연결했어요."
+        if run is None:
+            answer = (
+                f"질문은 **{spec.label}**에 해당해요. "
+                "아직 담당 Tool 코드가 `main`에 병합되지 않아 실행할 수 없습니다."
             )
-            answer = str(run(profile, standalone_message))
-        except Exception:
-            answer = "요청을 처리하지 못했어요. 입력을 확인하고 다시 시도해 주세요."
+        else:
+            try:
+                answer = str(run(profile, decision.standalone_query or message))
+            except Exception:
+                answer = "요청을 처리하지 못했어요. 입력을 확인하고 다시 시도해 주세요."
 
     history.extend(
         [{"role": "user", "content": message}, {"role": "assistant", "content": answer}]
     )
     choices = _extract_choices(answer)
-    return "", history, gr.Radio(choices=choices, value=None, visible=bool(choices))
+    return (
+        "",
+        history,
+        gr.Radio(choices=choices, value=None, visible=bool(choices)),
+        routed_tool,
+        route_status,
+    )
 
 
 def choose_follow_up(
     choice: str | None,
     history: list[dict[str, str]] | None,
     profile_state: dict[str, object],
-    active_tool: str,
-) -> tuple[list[dict[str, str]], gr.Radio]:
+    previous_tool: str,
+) -> tuple[list[dict[str, str]], gr.Radio, str, str]:
     if not choice:
-        return list(history or []), gr.Radio()
-    if active_tool == "certificate":
-        question = f"{choice} 시험 일정 알려줘"
-    else:
-        question = f"{choice}에 대해 더 자세히 알려줘"
-    _, updated, selector = respond(question, history, profile_state, active_tool)
-    return updated, selector
+        return list(history or []), gr.Radio(), previous_tool, ""
+    question = (
+        f"{choice} 시험 일정 알려줘"
+        if previous_tool == "certificate"
+        else f"{choice}에 대해 더 자세히 알려줘"
+    )
+    _, updated, selector, routed_tool, status = respond(
+        question, history, profile_state, previous_tool
+    )
+    return updated, selector, routed_tool, status
 
 
-def reset_chat() -> tuple[str, list[dict[str, str]], gr.Radio]:
-    return "", [{"role": "assistant", "content": "새 대화를 시작했어요. 무엇을 준비할까요?"}], gr.Radio(choices=[], visible=False)
+def reset_chat() -> tuple[str, list[dict[str, str]], gr.Radio, str, str]:
+    return (
+        "",
+        [{"role": "assistant", "content": "새 대화를 시작했어요. 무엇을 준비할까요?"}],
+        gr.Radio(choices=[], visible=False),
+        "",
+        "🤖 질문의 맥락을 읽고 적절한 기능을 자동으로 선택해요.",
+    )
 
 
 CSS = """
@@ -231,23 +288,28 @@ CSS = """
 .card{padding:28px!important;border:1px solid #fff!important;border-radius:28px!important;background:#fff!important;box-shadow:0 12px 30px rgba(49,130,246,.12)!important}
 input,textarea{border-radius:16px!important;background:#f9fafb!important;border:1px solid var(--line)!important}input:focus,textarea:focus{border-color:var(--blue)!important;box-shadow:0 0 0 4px rgba(49,130,246,.1)!important}
 .primary3d,.secondary3d{border:0!important;border-radius:16px!important;font-weight:700!important;min-height:46px!important}.primary3d{color:#fff!important;background:linear-gradient(#4593fa,#2378eb)!important;box-shadow:0 6px 0 #155dc1,0 11px 20px rgba(49,130,246,.2)!important}.secondary3d{color:var(--blue-dark)!important;background:linear-gradient(#fff,#edf5ff)!important;box-shadow:0 4px 0 #c5dcf8!important}
-.chat-shell{max-width:900px;margin:auto}.tool-menu button{border-radius:18px!important;min-height:70px!important;background:#fff!important;border:1px solid var(--line)!important;box-shadow:0 5px 14px rgba(49,130,246,.08)!important}.profile-chip,.active-tool{padding:10px 14px;border-radius:14px;background:var(--soft);color:var(--blue-dark)}
+.chat-shell{max-width:900px;margin:auto}.profile-chip,.route-status{padding:10px 14px;border-radius:14px;background:var(--soft);color:var(--blue-dark)}
 .chat-card{padding:14px!important;border-radius:28px!important;background:#fff!important;border:1px solid #fff!important;box-shadow:0 12px 30px rgba(49,130,246,.12)!important}
 #main-chat .message{border:0!important;border-radius:22px!important;padding:11px 15px!important;max-width:80%!important}#main-chat .message.user,#main-chat [data-testid="user"] .message{background:#0b84ff!important;color:#fff!important;border-bottom-right-radius:7px!important}#main-chat .message.bot,#main-chat [data-testid="bot"] .message{background:#edf0f3!important;color:var(--text)!important;border-bottom-left-radius:7px!important}
-footer{display:none!important}@media(max-width:700px){.gradio-container{padding:12px!important}.card{padding:20px!important}.hero h1{font-size:27px}.tool-menu{flex-direction:column!important}}
+footer{display:none!important}@media(max-width:700px){.gradio-container{padding:12px!important}.card{padding:20px!important}.hero h1{font-size:27px}}
 """
 
 
 with gr.Blocks(title="취업준비 도움 챗봇") as demo:
     profile_state = gr.State({})
-    active_tool = gr.State("job")
+    previous_tool = gr.State("")
 
     with gr.Column(visible=True, elem_classes=["onboarding"]) as profile_page:
-        gr.HTML('<section class="hero"><div class="logo">💼</div><h1>취업 준비, 한 곳에서 시작해요</h1><p>프로필을 입력하면 직무·자소서·면접·자격증 준비를<br>하나의 챗봇에서 이어서 도와드려요.</p></section>')
+        gr.HTML(
+            '<section class="hero"><div class="logo">💼</div>'
+            "<h1>취업 준비, 한 곳에서 시작해요</h1>"
+            "<p>프로필을 입력하면 질문의 맥락에 맞는 기능을<br>"
+            "AI가 자동으로 선택해 도와드려요.</p></section>"
+        )
         with gr.Group(elem_classes=["card"]):
             gr.Markdown("### 먼저, 나를 알려주세요")
             education = gr.Textbox(label="학력·전공", placeholder="예: 경영학과, 컴퓨터공학과")
-            target_job = gr.Textbox(label="희망 직무", placeholder="예: 은행 IT, 데이터 분석가")
+            target_job = gr.Textbox(label="희망 직무", placeholder="선택 입력: 은행 IT, 데이터 분석가")
             skills = gr.Textbox(label="보유 기술", placeholder="쉼표로 구분: Python, SQL")
             experiences = gr.Textbox(label="프로젝트·경험", placeholder="쉼표로 구분해 입력")
             certs = gr.Textbox(label="보유 자격증", placeholder="쉼표로 구분: SQLD, 컴활")
@@ -257,17 +319,30 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
     with gr.Column(visible=False, elem_classes=["chat-shell"]) as chat_page:
         with gr.Row():
             back = gr.Button("← 프로필 수정", elem_classes=["secondary3d"], scale=0)
-            gr.Markdown("# 취업준비 코치\n원하는 기능을 고르고 편하게 질문해 주세요 ✨")
+            gr.Markdown("# 취업준비 코치\n하고 싶은 말을 편하게 입력하면 알맞은 기능으로 연결할게요 ✨")
         profile_summary = gr.Markdown(elem_classes=["profile-chip"])
-        with gr.Row(elem_classes=["tool-menu"]):
-            tool_buttons = []
-            for spec in TOOLS:
-                tool_buttons.append(gr.Button(f"{spec.icon} {spec.label}"))
-        active_label = gr.Markdown("🧭 **직무 추천** · 내 경험과 역량에 맞는 금융권 직무를 찾아요.", elem_classes=["active-tool"])
-        quick_examples = gr.Radio(choices=list(TOOLS[0].examples), label="빠른 질문", interactive=True)
+        route_status = gr.Markdown(
+            "🤖 질문의 맥락을 읽고 적절한 기능을 자동으로 선택해요.",
+            elem_classes=["route-status"],
+        )
+        quick_examples = gr.Radio(
+            choices=[
+                "내 경험에 맞는 금융권 직무를 추천해줘",
+                "이 자소서 지원동기를 피드백해줘",
+                "데이터 분석 직무 면접 질문을 만들어줘",
+                "SQLD 올해 시험 일정 알려줘",
+            ],
+            label="이렇게 물어보세요",
+            interactive=True,
+        )
         with gr.Group(elem_classes=["chat-card"]):
             chatbot = gr.Chatbot(
-                value=[{"role": "assistant", "content": "안녕하세요! 먼저 원하는 기능을 선택해 주세요."}],
+                value=[
+                    {
+                        "role": "assistant",
+                        "content": "안녕하세요! 준비하고 싶은 내용을 편하게 말씀해 주세요.",
+                    }
+                ],
                 height=500,
                 buttons=["copy", "copy_all"],
                 layout="bubble",
@@ -277,29 +352,36 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
             with gr.Row():
                 send = gr.Button("보내기", variant="primary", elem_classes=["primary3d"])
                 clear = gr.Button("새 대화", elem_classes=["secondary3d"])
-            follow_up = gr.Radio(choices=[], label="결과를 선택해 이어서 질문하기", visible=False, interactive=True)
+            follow_up = gr.Radio(
+                choices=[],
+                label="결과를 선택해 이어서 질문하기",
+                visible=False,
+                interactive=True,
+            )
 
     enter.click(
         enter_chat,
         inputs=[education, target_job, skills, experiences, certs],
         outputs=[profile_state, profile_page, chat_page, profile_summary, profile_error],
     )
-    back.click(lambda: (gr.update(visible=True), gr.update(visible=False)), outputs=[profile_page, chat_page])
-    for button, spec in zip(tool_buttons, TOOLS):
-        button.click(
-            lambda key=spec.key: select_tool(key),
-            outputs=[active_tool, active_label, quick_examples, message],
-        )
+    back.click(
+        lambda: (gr.update(visible=True), gr.update(visible=False)),
+        outputs=[profile_page, chat_page],
+    )
     quick_examples.input(lambda value: value or "", inputs=quick_examples, outputs=message)
-    chat_inputs = [message, chatbot, profile_state, active_tool]
-    send.click(respond, inputs=chat_inputs, outputs=[message, chatbot, follow_up])
-    message.submit(respond, inputs=chat_inputs, outputs=[message, chatbot, follow_up])
+    chat_inputs = [message, chatbot, profile_state, previous_tool]
+    chat_outputs = [message, chatbot, follow_up, previous_tool, route_status]
+    send.click(respond, inputs=chat_inputs, outputs=chat_outputs)
+    message.submit(respond, inputs=chat_inputs, outputs=chat_outputs)
     follow_up.input(
         choose_follow_up,
-        inputs=[follow_up, chatbot, profile_state, active_tool],
-        outputs=[chatbot, follow_up],
+        inputs=[follow_up, chatbot, profile_state, previous_tool],
+        outputs=[chatbot, follow_up, previous_tool, route_status],
     )
-    clear.click(reset_chat, outputs=[message, chatbot, follow_up])
+    clear.click(
+        reset_chat,
+        outputs=[message, chatbot, follow_up, previous_tool, route_status],
+    )
 
 
 if __name__ == "__main__":
