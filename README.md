@@ -17,10 +17,15 @@ Gradio 기반 공통 애플리케이션 뼈대입니다. 프로필 온보딩 후
 
 ```powershell
 uv sync
+Copy-Item .env.example .env
 uv run python app/main.py
 ```
 
 [http://localhost:7860](http://localhost:7860)으로 접속합니다.
+
+`.env`의 `OPENAI_API_KEY`에 키를 입력하면 최근 대화를 참고해
+`그 자격증 일정 알려줘` 같은 후속 질문을 독립된 질문으로 정리한 뒤 Tool에 전달합니다.
+키가 없거나 호출에 실패하면 기존 규칙 기반 방식으로 계속 동작합니다.
 
 ## Render
 

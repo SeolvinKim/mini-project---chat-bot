@@ -104,10 +104,8 @@ def enter_chat(
         "experiences": _split(experiences),
         "certs": _split(certs),
     }
-    if not profile["target_job"]:
-        return profile, gr.update(visible=True), gr.update(visible=False), "", "희망 직무를 입력해 주세요."
     summary = (
-        f"**{profile['target_job']}** 준비 중"
+        f"**{profile['target_job'] or '희망 직무 미정'}**"
         f" · 기술 {', '.join(profile['skills']) or '미입력'}"
         f" · 보유 자격증 {', '.join(profile['certs']) or '없음'}"
     )
@@ -127,6 +125,47 @@ def _extract_choices(answer: str) -> list[str]:
         if match:
             choices.append(re.sub(r"[*_`]", "", match.group(1)).strip())
     return choices[:5]
+
+
+def _contextualize_message(
+    message: str,
+    history: list[dict[str, str]],
+    profile: UserProfile,
+    active_tool: str,
+) -> str:
+    if not os.getenv("OPENAI_API_KEY") or not history:
+        return message
+
+    recent = history[-6:]
+    conversation = "\n".join(
+        f"{item.get('role', 'user')}: {item.get('content', '')}"
+        for item in recent
+    )
+    try:
+        from core.llm import get_llm
+
+        response = get_llm().invoke(
+            [
+                (
+                    "system",
+                    "당신은 취업준비 챗봇의 질문 정리기다. "
+                    "최근 대화를 참고해 사용자의 마지막 질문을 독립적으로 이해 가능한 "
+                    "한 문장으로 다시 쓴다. 답변하지 말고, 사실·날짜·경험을 새로 만들지 말며, "
+                    "사용자가 쓴 자격증명과 고유명사는 그대로 보존한다. 한국어 한 문장만 출력한다.",
+                ),
+                (
+                    "human",
+                    f"현재 Tool: {TOOL_MAP[active_tool].label}\n"
+                    f"희망 직무: {profile.target_job or '미입력'}\n"
+                    f"최근 대화:\n{conversation}\n"
+                    f"마지막 질문: {message}",
+                ),
+            ]
+        )
+        rewritten = str(response.content).strip()
+        return rewritten or message
+    except Exception:
+        return message
 
 
 def respond(
@@ -149,7 +188,11 @@ def respond(
         )
     else:
         try:
-            answer = str(run(_profile_from_state(profile_state), message))
+            profile = _profile_from_state(profile_state)
+            standalone_message = _contextualize_message(
+                message, history, profile, active_tool
+            )
+            answer = str(run(profile, standalone_message))
         except Exception:
             answer = "요청을 처리하지 못했어요. 입력을 확인하고 다시 시도해 주세요."
 
@@ -209,7 +252,7 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
             experiences = gr.Textbox(label="프로젝트·경험", placeholder="쉼표로 구분해 입력")
             certs = gr.Textbox(label="보유 자격증", placeholder="쉼표로 구분: SQLD, 컴활")
             enter = gr.Button("챗봇 입장하기  →", variant="primary", elem_classes=["primary3d"])
-            profile_error = gr.Markdown("희망 직무는 꼭 입력해 주세요.")
+            profile_error = gr.Markdown("")
 
     with gr.Column(visible=False, elem_classes=["chat-shell"]) as chat_page:
         with gr.Row():

@@ -8,7 +8,11 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 def get_llm() -> ChatOpenAI:
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY가 설정되지 않았습니다.")
-    return ChatOpenAI(model="gpt-4.1-mini", temperature=0.3)
+    return ChatOpenAI(
+        model=os.getenv("OPENAI_MODEL", "gpt-5.4-mini"),
+        timeout=20,
+        max_retries=1,
+    )
 
 
 @lru_cache(maxsize=1)
