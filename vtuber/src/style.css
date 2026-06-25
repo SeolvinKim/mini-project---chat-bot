@@ -19,13 +19,25 @@ body,
   display: flex;
 }
 
-/* 왼쪽: 캐릭터 무대 */
+/* 왼쪽: 캐릭터 무대 (1:2 비율에서 좁은 쪽) */
 #stage {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 200px;
   height: 100%;
   overflow: hidden;
-  isolation: isolate; /* 독립 stacking context → iframe z-index 격리 */
+  isolation: isolate;
+  background: #08080f;
+}
+
+/* 배경 흐리게 — 캔버스 위, HUD 아래 */
+#stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 4, 12, 0.45);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* 링크 배경 iframe: 캔버스(alpha) 아래, z-index: -1 */
@@ -87,6 +99,7 @@ body,
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: #000;
+  z-index: 2;
 }
 
 #video {
@@ -148,15 +161,17 @@ body,
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
+  z-index: 2;
 }
 
 #subtitle.show {
   opacity: 1;
 }
 
-/* 오른쪽: 채팅 패널 */
+/* 오른쪽: 채팅 패널 (1:2 비율에서 넓은 쪽) */
 #chat-panel {
-  flex: 0 0 360px;
+  flex: 2 1 0;
+  min-width: 360px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -236,8 +251,13 @@ body,
   #app {
     flex-direction: column;
   }
+  #stage {
+    flex: 0 0 35%;
+    min-width: unset;
+  }
   #chat-panel {
-    flex: 0 0 44%;
+    flex: 1 1 auto;
+    min-width: unset;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
