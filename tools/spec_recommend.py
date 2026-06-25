@@ -51,6 +51,15 @@ SCHEDULE_WORDS = {
     "올해",
     "회차",
 }
+NEAREST_WORDS = {
+    "가장 가까운",
+    "제일 가까운",
+    "가장 빠른",
+    "제일 빠른",
+    "다음 시험",
+    "다음 회차",
+    "곧 있는",
+}
 MORE_WORDS = {"더 추천", "다른 것도", "다른 자격증", "추가 추천", "또 추천"}
 LIST_WORDS = {"목록", "종류", "전체", "뭐가 있어", "어떤 자격증"}
 
@@ -623,6 +632,59 @@ def _schedule_cards(schedules: list[dict[str, Any]]) -> str:
     return '<div class="schedule-grid">' + "".join(cards) + "</div>"
 
 
+def _format_nearest_schedule(
+    certificate: dict[str, Any], payload: dict[str, Any]
+) -> str:
+    """가장 가까운 예정 회차 한 건만 반환한다. 없으면 연간 전체로 폴백."""
+    today = date.today()
+    year = today.year
+
+    candidates: list[dict[str, Any]] = []
+    for y in (year, year + 1):
+        for s in certificate.get("exams", []):
+            if int(s.get("year") or 0) == y:
+                candidates.append(s)
+
+    upcoming = [
+        s for s in candidates
+        if _schedule_status(s, today) in {"접수 중", "예정"}
+    ]
+    upcoming.sort(key=lambda s: s.get("exam_date") or "9999-12-31")
+
+    if not upcoming:
+        return _format_schedule(certificate, payload, year)
+
+    nearest = upcoming[0]
+    source_url = certificate.get("source_url", "")
+    source_name = escape(str(certificate.get("source_name", "공식 사이트")))
+    source_link = (
+        f'<a href="{escape(source_url, quote=True)}" target="_blank">{source_name}</a>'
+        if source_url
+        else source_name
+    )
+    last_updated = payload.get("last_updated") or certificate.get("last_updated")
+    try:
+        updated_text = (
+            datetime.fromisoformat(last_updated).strftime("%Y.%m.%d %H:%M")
+            if last_updated
+            else "확인되지 않음"
+        )
+    except ValueError:
+        updated_text = str(last_updated)
+
+    return (
+        '<div class="schedule-response">'
+        f'<h2 class="schedule-title">{escape(certificate["certificate_name"])} — 가장 가까운 시험</h2>'
+        f'{_schedule_cards([nearest])}'
+        '<div class="schedule-meta">'
+        f'데이터 기준 · {escape(updated_text)}<br>'
+        f'시행기관 · {source_name}<br>'
+        f'공식 출처 · {source_link}</div>'
+        '<p class="schedule-note">시험 일정은 변경될 수 있으므로 접수 전 공식 사이트에서 다시 확인해 주세요.</p>'
+        '</div>'
+    )
+
+
 def _format_schedule(
     certificate: dict[str, Any], payload: dict[str, Any], year: int
 ) -> str:
@@ -754,6 +816,8 @@ def run(profile: UserProfile, user_input: str) -> str:
     certificate = _find_certificate(user_input, certificates)
     if certificate and _has_any(user_input, SCHEDULE_WORDS):
         _set_focused_certificate(profile, certificate["certificate_id"])
+        if _has_any(user_input, NEAREST_WORDS):
+            return _format_nearest_schedule(certificate, payload)
         return _format_schedule(certificate, payload, date.today().year)
 
     pending_selection = _resolve_pending_schedule_selection(
