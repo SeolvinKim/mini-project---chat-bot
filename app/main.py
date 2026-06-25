@@ -281,17 +281,196 @@ def reset_chat() -> tuple[str, list[dict[str, str]], gr.Radio, str, str]:
 
 
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
-:root{--blue:#3182f6;--blue-dark:#1b64da;--soft:#e8f3ff;--bg:#f4f7fb;--text:#191f28;--sub:#6b7684;--line:#e5e8eb}
-.gradio-container{max-width:1100px!important;margin:auto!important;padding:24px!important;min-height:100vh;background:var(--bg);font-family:"Gowun Dodum","Noto Sans KR",sans-serif!important;color:var(--text)}
-.onboarding{max-width:760px;margin:4vh auto 0}.hero{text-align:center;padding:18px 8px 24px}.hero .logo{display:inline-flex;width:60px;height:60px;align-items:center;justify-content:center;border-radius:20px;background:linear-gradient(145deg,#55a3ff,#1671e8);box-shadow:0 12px 24px rgba(49,130,246,.28);font-size:28px}.hero h1{font-size:32px;margin:16px 0 6px}.hero p{color:var(--sub);line-height:1.65}
-.card{padding:28px!important;border:1px solid #fff!important;border-radius:28px!important;background:#fff!important;box-shadow:0 12px 30px rgba(49,130,246,.12)!important}
-input,textarea{border-radius:16px!important;background:#f9fafb!important;border:1px solid var(--line)!important}input:focus,textarea:focus{border-color:var(--blue)!important;box-shadow:0 0 0 4px rgba(49,130,246,.1)!important}
-.primary3d,.secondary3d{border:0!important;border-radius:16px!important;font-weight:700!important;min-height:46px!important}.primary3d{color:#fff!important;background:linear-gradient(#4593fa,#2378eb)!important;box-shadow:0 6px 0 #155dc1,0 11px 20px rgba(49,130,246,.2)!important}.secondary3d{color:var(--blue-dark)!important;background:linear-gradient(#fff,#edf5ff)!important;box-shadow:0 4px 0 #c5dcf8!important}
-.chat-shell{max-width:900px;margin:auto}.profile-chip,.route-status{padding:10px 14px;border-radius:14px;background:var(--soft);color:var(--blue-dark)}
-.chat-card{padding:14px!important;border-radius:28px!important;background:#fff!important;border:1px solid #fff!important;box-shadow:0 12px 30px rgba(49,130,246,.12)!important}
-#main-chat .message{border:0!important;border-radius:22px!important;padding:11px 15px!important;max-width:80%!important}#main-chat .message.user,#main-chat [data-testid="user"] .message{background:#0b84ff!important;color:#fff!important;border-bottom-right-radius:7px!important}#main-chat .message.bot,#main-chat [data-testid="bot"] .message{background:#edf0f3!important;color:var(--text)!important;border-bottom-left-radius:7px!important}
-footer{display:none!important}@media(max-width:700px){.gradio-container{padding:12px!important}.card{padding:20px!important}.hero h1{font-size:27px}}
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+
+:root{
+  --glass-blue:#4b93ff;
+  --glass-blue-deep:#225bd7;
+  --glass-cyan:#bfe9ff;
+  --ink:#172033;
+  --muted:#687386;
+  --glass-border:rgba(255,255,255,.82);
+  --glass-fill:rgba(247,250,255,.56);
+  --glass-shadow:0 22px 50px rgba(62,77,108,.18),0 6px 14px rgba(49,75,121,.12);
+}
+
+html,body{min-height:100%;background:#edf1f6!important}
+body:before,body:after{
+  content:"";position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(3px);
+}
+body:before{
+  width:560px;height:560px;left:-170px;top:-180px;
+  background:radial-gradient(circle at 55% 52%,rgba(178,220,255,.65),rgba(213,231,255,.24) 48%,transparent 72%);
+}
+body:after{
+  width:620px;height:620px;right:-210px;bottom:-260px;
+  background:radial-gradient(circle at 45% 40%,rgba(177,197,255,.55),rgba(225,232,255,.2) 50%,transparent 72%);
+}
+
+.gradio-container{
+  position:relative;z-index:1;max-width:none!important;margin:0!important;padding:24px!important;
+  min-height:100vh!important;color:var(--ink)!important;
+  font-family:"Noto Sans KR","Gowun Dodum",sans-serif!important;
+  background:
+    linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px),
+    linear-gradient(135deg,#e8edf3 0%,#f8fafc 48%,#e9edf4 100%)!important;
+  background-size:32px 32px,32px 32px,auto!important;
+}
+
+.onboarding{max-width:720px;margin:2vh auto 5vh!important}
+.hero{text-align:center;padding:16px 8px 24px}
+.hero .eyebrow{
+  display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+  color:#49627f;font-size:12px;font-weight:700;letter-spacing:.08em;
+  border:1px solid rgba(255,255,255,.9);
+  background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(222,234,250,.48));
+  box-shadow:inset 0 1px 1px #fff,0 7px 16px rgba(65,83,115,.12);
+}
+.hero .logo{
+  display:flex;width:72px;height:72px;margin:18px auto 15px;align-items:center;justify-content:center;
+  border-radius:25px;font-size:31px;border:1px solid rgba(255,255,255,.88);
+  background:
+    radial-gradient(circle at 28% 18%,rgba(255,255,255,.95),transparent 30%),
+    linear-gradient(145deg,rgba(194,229,255,.88),rgba(87,145,245,.63));
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.95),inset 0 -5px 12px rgba(37,92,192,.2),
+    0 12px 22px rgba(57,103,187,.25),0 3px 0 rgba(121,152,205,.36);
+}
+.hero h1{font-size:34px;letter-spacing:-.045em;margin:0 0 9px;color:#141a25}
+.hero p{margin:0;color:var(--muted);line-height:1.7;font-size:15px}
+
+.glass-card,.card,.chat-card{
+  position:relative;overflow:hidden;padding:28px!important;border-radius:32px!important;
+  border:1px solid var(--glass-border)!important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.68),rgba(235,241,250,.42))!important;
+  -webkit-backdrop-filter:blur(28px) saturate(145%);backdrop-filter:blur(28px) saturate(145%);
+  box-shadow:inset 0 1.5px 1px rgba(255,255,255,.95),inset 0 -1px 2px rgba(99,125,166,.18),
+    var(--glass-shadow)!important;
+}
+.glass-card:before,.card:before,.chat-card:before{
+  content:"";position:absolute;z-index:0;inset:1px 12px auto;height:42%;pointer-events:none;
+  border-radius:29px 29px 55% 55%;
+  background:linear-gradient(180deg,rgba(255,255,255,.34),transparent);
+}
+.glass-card>* ,.card>* ,.chat-card>*{position:relative;z-index:1}
+.glass-card>.block,.glass-card>.form,.card>.block,.card>.form{
+  border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.glass-card .styler,.card .styler,.chat-card .styler{
+  border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.card h3{margin:0 0 5px!important;font-size:21px!important;letter-spacing:-.035em}
+.form-note{margin:-1px 0 14px;color:var(--muted);font-size:13px}
+
+.gradio-container .form{
+  border:0!important;background:transparent!important;box-shadow:none!important;
+}
+.gradio-container label span{color:#344054!important;font-weight:600!important;font-size:13px!important}
+.gradio-container input,.gradio-container textarea{
+  min-height:48px!important;border-radius:16px!important;color:var(--ink)!important;
+  border:1px solid rgba(144,166,201,.42)!important;
+  background:linear-gradient(145deg,rgba(245,249,255,.74),rgba(255,255,255,.42))!important;
+  box-shadow:inset 0 2px 4px rgba(68,91,127,.09),inset 0 -1px 1px rgba(255,255,255,.88),
+    0 1px 0 rgba(255,255,255,.9)!important;
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+}
+.gradio-container input::placeholder,.gradio-container textarea::placeholder{color:#8993a3!important}
+.gradio-container input:focus,.gradio-container textarea:focus{
+  border-color:rgba(72,136,245,.72)!important;
+  box-shadow:inset 0 2px 4px rgba(68,91,127,.08),0 0 0 4px rgba(75,147,255,.13),
+    0 7px 18px rgba(61,111,199,.12)!important;
+}
+
+.primary3d,.secondary3d{
+  min-height:49px!important;border-radius:18px!important;font-weight:700!important;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease!important;
+}
+.primary3d{
+  color:#fff!important;border:1px solid rgba(255,255,255,.7)!important;
+  background:
+    radial-gradient(circle at 50% -30%,rgba(255,255,255,.8),transparent 45%),
+    linear-gradient(180deg,#73b8ff 0%,#3f8cf4 48%,#2469dc 100%)!important;
+  text-shadow:0 1px 1px rgba(19,62,134,.35);
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.86),inset 0 -4px 8px rgba(24,73,169,.24),
+    0 5px 0 rgba(35,86,174,.42),0 13px 24px rgba(50,111,220,.25)!important;
+}
+.secondary3d{
+  color:#29466f!important;border:1px solid rgba(255,255,255,.82)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.75),rgba(220,232,249,.5))!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.94),inset 0 -2px 4px rgba(85,111,153,.13),
+    0 4px 0 rgba(129,151,184,.25),0 9px 18px rgba(64,80,109,.13)!important;
+}
+.primary3d:hover,.secondary3d:hover{filter:brightness(1.035);transform:translateY(-1px)}
+.primary3d:active,.secondary3d:active{transform:translateY(3px);box-shadow:inset 0 2px 5px rgba(35,70,125,.18),0 2px 5px rgba(51,75,111,.15)!important}
+
+.chat-shell{max-width:960px;margin:0 auto!important;padding-bottom:30px}
+.chat-topbar{
+  align-items:center!important;margin:0 0 14px;padding:8px 3px!important;
+}
+.chat-heading h1{margin:0!important;font-size:28px!important;letter-spacing:-.045em}
+.chat-heading p{margin:5px 0 0;color:var(--muted);font-size:14px}
+.profile-chip,.route-status{
+  border:1px solid rgba(255,255,255,.78)!important;border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.6),rgba(224,235,250,.42))!important;
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9),0 7px 18px rgba(64,82,113,.09)!important;
+}
+.profile-chip{padding:10px 15px!important;color:#43516a}
+.route-status{padding:9px 15px!important;color:#285d9f}
+.profile-chip p,.route-status p{margin:0!important}
+
+.quick-glass{
+  padding:10px 13px 12px!important;margin:3px 0 14px!important;border-radius:22px!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  background:rgba(244,248,253,.46)!important;
+  box-shadow:inset 0 1px 1px #fff,0 8px 18px rgba(64,82,113,.08)!important;
+}
+.quick-glass>label>span{padding-left:3px}
+.quick-glass .wrap{gap:7px!important}
+.quick-glass label:has(input){
+  flex:0 1 auto!important;width:auto!important;
+  border:1px solid rgba(255,255,255,.82)!important;border-radius:999px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.66),rgba(220,233,251,.46))!important;
+  box-shadow:inset 0 1px 1px #fff,0 4px 9px rgba(55,77,111,.1)!important;
+}
+
+.chat-card{padding:15px!important;border-radius:34px!important}
+#main-chat{
+  border:0!important;border-radius:25px!important;
+  background:linear-gradient(145deg,rgba(242,247,254,.5),rgba(255,255,255,.28))!important;
+}
+#main-chat .message{
+  max-width:82%!important;padding:11px 15px!important;border-radius:22px!important;
+  border:1px solid rgba(255,255,255,.7)!important;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.48),0 5px 13px rgba(50,70,105,.1)!important;
+}
+#main-chat .message.user,#main-chat [data-testid="user"] .message{
+  color:#fff!important;border-bottom-right-radius:7px!important;
+  background:
+    radial-gradient(circle at 30% 0,rgba(255,255,255,.35),transparent 45%),
+    linear-gradient(145deg,#58a7ff,#317fe9 65%,#2466ce)!important;
+}
+#main-chat .message.bot,#main-chat [data-testid="bot"] .message{
+  color:var(--ink)!important;border-bottom-left-radius:7px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(224,233,246,.68))!important;
+}
+.composer-row{align-items:end!important;gap:10px!important}
+.composer-input{flex:1}
+.composer-input textarea{border-radius:21px!important}
+.send-pill{min-width:112px!important}
+
+footer{display:none!important}
+@media(max-width:700px){
+  .gradio-container{padding:12px!important;background-size:24px 24px,24px 24px,auto!important}
+  .onboarding{margin-top:0!important}.hero{padding-top:8px}.hero h1{font-size:27px}
+  .hero .logo{width:62px;height:62px;border-radius:22px}
+  .glass-card,.card{padding:20px!important;border-radius:26px!important}
+  .chat-topbar{flex-direction:column!important;align-items:flex-start!important}
+  .chat-heading h1{font-size:24px!important}.chat-card{padding:9px!important}
+  #main-chat .message{max-width:90%!important}
+  .composer-row{gap:7px!important}.send-pill{min-width:80px!important}
+}
 """
 
 
@@ -301,13 +480,15 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
 
     with gr.Column(visible=True, elem_classes=["onboarding"]) as profile_page:
         gr.HTML(
-            '<section class="hero"><div class="logo">💼</div>'
+            '<section class="hero"><span class="eyebrow">CAREER AI ASSISTANT</span>'
+            '<div class="logo">💼</div>'
             "<h1>취업 준비, 한 곳에서 시작해요</h1>"
             "<p>프로필을 입력하면 질문의 맥락에 맞는 기능을<br>"
             "AI가 자동으로 선택해 도와드려요.</p></section>"
         )
-        with gr.Group(elem_classes=["card"]):
+        with gr.Group(elem_classes=["card", "glass-card"]):
             gr.Markdown("### 먼저, 나를 알려주세요")
+            gr.HTML('<p class="form-note">알고 있는 정보만 편하게 입력해 주세요. 나중에 수정할 수 있어요.</p>')
             education = gr.Textbox(label="학력·전공", placeholder="예: 경영학과, 컴퓨터공학과")
             target_job = gr.Textbox(label="희망 직무", placeholder="선택 입력: 은행 IT, 데이터 분석가")
             skills = gr.Textbox(label="보유 기술", placeholder="쉼표로 구분: Python, SQL")
@@ -317,9 +498,12 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
             profile_error = gr.Markdown("")
 
     with gr.Column(visible=False, elem_classes=["chat-shell"]) as chat_page:
-        with gr.Row():
+        with gr.Row(elem_classes=["chat-topbar"]):
             back = gr.Button("← 프로필 수정", elem_classes=["secondary3d"], scale=0)
-            gr.Markdown("# 취업준비 코치\n하고 싶은 말을 편하게 입력하면 알맞은 기능으로 연결할게요 ✨")
+            gr.HTML(
+                '<div class="chat-heading"><h1>취업준비 코치</h1>'
+                "<p>하고 싶은 말을 편하게 입력하면 알맞은 기능으로 연결할게요 ✨</p></div>"
+            )
         profile_summary = gr.Markdown(elem_classes=["profile-chip"])
         route_status = gr.Markdown(
             "🤖 질문의 맥락을 읽고 적절한 기능을 자동으로 선택해요.",
@@ -334,6 +518,7 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
             ],
             label="이렇게 물어보세요",
             interactive=True,
+            elem_classes=["quick-glass"],
         )
         with gr.Group(elem_classes=["chat-card"]):
             chatbot = gr.Chatbot(
@@ -343,14 +528,26 @@ with gr.Blocks(title="취업준비 도움 챗봇") as demo:
                         "content": "안녕하세요! 준비하고 싶은 내용을 편하게 말씀해 주세요.",
                     }
                 ],
-                height=500,
+                height=460,
                 buttons=["copy", "copy_all"],
                 layout="bubble",
+                show_label=False,
                 elem_id="main-chat",
             )
-            message = gr.Textbox(label="질문", placeholder="무엇을 준비하고 있나요?", lines=2)
+            with gr.Row(elem_classes=["composer-row"]):
+                message = gr.Textbox(
+                    label="질문",
+                    placeholder="무엇을 준비하고 있나요?",
+                    lines=2,
+                    elem_classes=["composer-input"],
+                )
+                send = gr.Button(
+                    "보내기",
+                    variant="primary",
+                    elem_classes=["primary3d", "send-pill"],
+                    scale=0,
+                )
             with gr.Row():
-                send = gr.Button("보내기", variant="primary", elem_classes=["primary3d"])
                 clear = gr.Button("새 대화", elem_classes=["secondary3d"])
             follow_up = gr.Radio(
                 choices=[],
