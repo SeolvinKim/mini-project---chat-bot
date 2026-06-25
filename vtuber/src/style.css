@@ -107,25 +107,6 @@ body,
   height: 100%;
 }
 
-#preview {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  width: 200px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #000;
-  z-index: 2;
-}
-
-#video {
-  display: block;
-  width: 100%;
-  /* 거울 모드 */
-  transform: scaleX(-1);
-}
 
 #hud {
   position: absolute;
