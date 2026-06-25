@@ -24,9 +24,14 @@ if TYPE_CHECKING:
 
 NAME = "면접 질문"
 
-# 통합_PRD 8장 질문 유형 5개.
 QUESTION_TYPES = ["인성", "직무", "프로젝트", "기업맞춤", "압박"]
 NUM_QUESTIONS = 3
+
+MODE_PRACTICE = "연습모드"
+MODE_REAL = "실전모드"
+
+# "1번 답변: ..." 또는 "답변: ..." 패턴
+ANSWER_FEEDBACK_RE = re.compile(r"^(?:\d+번\s*)?답변\s*[:：]\s*(.+)", re.DOTALL | re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -242,22 +247,118 @@ def _extract_company(user_input: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# 모드 파싱
+# ---------------------------------------------------------------------------
+def _parse_mode(user_input: str) -> tuple[str | None, str]:
+    """[연습모드] 또는 [실전모드] 접두어를 분리. (mode|None, stripped_input) 반환."""
+    m = re.match(r"^\[(연습모드|실전모드)\]\s*", user_input.strip())
+    if m:
+        return m.group(1), user_input[m.end():].strip()
+    return None, user_input
+
+
+# ---------------------------------------------------------------------------
+# 답변 평가
+# ---------------------------------------------------------------------------
+def _evaluate_answer(answer: str, profile: Any) -> str:
+    """면접 답변을 STAR·구체성·직무연관성 기준으로 평가한다."""
+    if not answer or len(answer) < 10:
+        return "답변 내용을 조금 더 길게 입력해 주세요."
+
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            target_job = _as_text(_profile_value(profile, "target_job")) or "지원 직무"
+            from openai import OpenAI
+            model = os.getenv("CHAT_MODEL", "gpt-4o-mini")
+            system = (
+                "당신은 채용 면접관입니다. 지원자의 면접 답변을 아래 기준으로 평가하세요.\n"
+                "평가 기준: STAR 구조(상황·과제·행동·결과), 구체성(수치·사례), 직무 연관성\n"
+                "형식: **강점** 1~2개 / **개선 포인트** 1~2개 / **한 줄 종합 평가**\n"
+                "간결하게, 한국어 존댓말로 작성하세요."
+            )
+            resp = OpenAI().chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": f"[지원 직무] {target_job}\n\n[답변]\n{answer}"},
+                ],
+                max_tokens=400,
+            )
+            text = resp.choices[0].message.content
+            if text and text.strip():
+                return text.strip()
+        except Exception:
+            pass
+
+    # 규칙 기반 폴백
+    has_number = bool(re.search(r"\d+\s*(?:%|명|건|배|개|년|개월|점|위)", answer))
+    result_hits = sum(answer.count(w) for w in ("결과", "성과", "달성", "개선", "해결"))
+    star_hits = sum(1 for w in ("상황", "과제", "행동", "결과") if w in answer)
+    length = len(answer)
+
+    strengths, improvements = [], []
+    if star_hits >= 2:
+        strengths.append("STAR 구조(상황·행동·결과)가 드러납니다.")
+    if has_number:
+        strengths.append("수치로 성과를 구체화했습니다.")
+    if result_hits > 0:
+        strengths.append("결과·성과를 언급해 답변을 마무리했습니다.")
+    if length >= 100:
+        strengths.append("충분한 분량으로 답변했습니다.")
+
+    if not has_number:
+        improvements.append("수치나 구체적 성과(%, 건수, 기간)를 추가하면 설득력이 높아집니다.")
+    if result_hits == 0:
+        improvements.append("행동이 가져온 결과나 배운 점을 마지막에 추가해 주세요.")
+    if star_hits < 2:
+        improvements.append("상황 → 과제 → 행동 → 결과(STAR) 흐름으로 구성하면 더 명확해집니다.")
+    if length < 80:
+        improvements.append("답변이 짧습니다. 구체적인 경험이나 사례를 추가해 주세요.")
+
+    lines = ["**면접 답변 피드백**", ""]
+    if strengths:
+        lines += ["**강점**"] + [f"- {s}" for s in strengths] + [""]
+    lines += ["**개선 포인트**"]
+    if improvements:
+        lines += [f"- {i}" for i in improvements]
+    else:
+        lines.append("- 전반적으로 잘 구성된 답변입니다. 실전에서도 자신 있게 말하세요!")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # 포맷팅
 # ---------------------------------------------------------------------------
-def format_questions(items: list[dict[str, str]], profile: Any, via_llm: bool) -> str:
+def format_questions(
+    items: list[dict[str, str]], profile: Any, via_llm: bool, mode: str = MODE_PRACTICE
+) -> str:
     target_job = _as_text(_profile_value(profile, "target_job")) or "희망 직무"
-    lines = [f"**{target_job}** 면접 예상 질문 {len(items)}개를 준비했어요.", ""]
-    for index, item in enumerate(items, start=1):
-        qtype = item.get("question_type") or "면접"
-        lines.append(f"### {index}. [{qtype}] {item['question']}")
-        if item.get("intent"):
-            lines.append(f"- **질문 의도:** {item['intent']}")
-        if item.get("evaluation_points"):
-            lines.append(f"- **평가 포인트:** {item['evaluation_points']}")
-        if item.get("answer_guide"):
-            lines.append(f"- **답변 가이드:** {item['answer_guide']}")
-        lines.append("")
-    lines.append("각 질문에 대해 답변을 준비해 보고, 모의 답변에 대한 피드백이 필요하면 알려 주세요.")
+
+    if mode == MODE_REAL:
+        lines = [
+            f"**{target_job}** 실전 면접을 시작합니다.",
+            "가이드 없이 실제 면접처럼 답해보세요.", "",
+        ]
+        for index, item in enumerate(items, start=1):
+            qtype = item.get("question_type") or "면접"
+            lines.append(f"### Q{index}. [{qtype}]")
+            lines.append(item["question"])
+            lines.append("")
+        lines.append("답변이 준비되면 **'1번 답변: [내용]'** 형식으로 입력해 주세요.")
+    else:
+        lines = [f"**{target_job}** 면접 예상 질문 {len(items)}개와 가이드를 준비했어요.", ""]
+        for index, item in enumerate(items, start=1):
+            qtype = item.get("question_type") or "면접"
+            lines.append(f"### {index}. [{qtype}] {item['question']}")
+            if item.get("intent"):
+                lines.append(f"- **질문 의도:** {item['intent']}")
+            if item.get("evaluation_points"):
+                lines.append(f"- **평가 포인트:** {item['evaluation_points']}")
+            if item.get("answer_guide"):
+                lines.append(f"- **답변 가이드:** {item['answer_guide']}")
+            lines.append("")
+        lines.append("준비한 답변은 **'1번 답변: [내용]'** 형식으로 입력하면 피드백을 드릴게요.")
+
     return "\n".join(lines).strip()
 
 
@@ -268,6 +369,14 @@ def run(profile: UserProfile, user_input: str) -> str:
     """프로필과 사용자 요청으로 면접 질문 약 3개를 생성해 문자열로 반환한다."""
     try:
         user_input = str(user_input or "").strip()
+
+        # [연습모드] / [실전모드] 접두어 파싱
+        mode, user_input = _parse_mode(user_input)
+
+        # 답변 피드백 요청 감지 ("1번 답변: ..." 또는 "답변: ...")
+        answer_match = ANSWER_FEEDBACK_RE.match(user_input)
+        if answer_match:
+            return _evaluate_answer(answer_match.group(1).strip(), profile)
 
         target_job = _as_text(_profile_value(profile, "target_job"))
         experiences = _as_text(_profile_value(profile, "experiences"))
@@ -298,9 +407,8 @@ def run(profile: UserProfile, user_input: str) -> str:
                 "지원 직무와 경험을 조금 더 구체적으로 알려 주시면 다시 만들어 드릴게요."
             )
 
-        return format_questions(items, profile, via_llm)
+        return format_questions(items, profile, via_llm, mode or MODE_PRACTICE)
     except Exception:
-        # 어떤 내부 예외도 외부로 노출하지 않는다.
         return (
             "면접 질문을 생성하는 중 문제가 발생했어요. "
             "잠시 후 다시 시도하거나, 지원 직무와 경험을 다시 입력해 주세요."

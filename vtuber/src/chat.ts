@@ -42,13 +42,53 @@ function splitCsv(value: string): string[] {
 // 매 메시지가 키워드 매칭 없이 바로 그 Tool로 간다 — 메시지에 키워드가 없어 일반 대화로
 // 빠지며 맥락(예: 직무)이 끊기던 문제를 버튼 고정으로 막는다.
 let selectedTool: string | null = null
+let interviewMode: 'practice' | 'real' | null = null
+
+function showInterviewModeSelect(): void {
+  document.getElementById('interview-mode-card')?.remove()
+  const log = $('chat-log')
+  const card = document.createElement('div')
+  card.id = 'interview-mode-card'
+  card.className = 'msg bot'
+  card.innerHTML = `
+    <p class="mode-card-title">면접 모드를 선택해 주세요</p>
+    <div class="mode-card-btns">
+      <button class="mode-card-btn" data-mode="practice">
+        <span class="mode-card-icon">🎓</span>
+        <strong>연습 모드</strong>
+        <small>질문 의도·가이드 포함</small>
+      </button>
+      <button class="mode-card-btn" data-mode="real">
+        <span class="mode-card-icon">⚡</span>
+        <strong>실전 모드</strong>
+        <small>가이드 없이 실제처럼</small>
+      </button>
+    </div>
+  `
+  card.querySelectorAll<HTMLButtonElement>('.mode-card-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      interviewMode = btn.dataset.mode as 'practice' | 'real'
+      card.remove()
+      const input = $('chat-input') as HTMLInputElement
+      input.value = '면접 질문 생성해줘'
+      ;($('chat-send') as HTMLButtonElement).click()
+    })
+  })
+  log.appendChild(card)
+  log.scrollTop = log.scrollHeight
+}
 
 function initToolBar(): void {
   const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.tool-chip'))
   for (const chip of chips) {
     chip.addEventListener('click', () => {
-      selectedTool = chip.dataset.tool || null
+      const newTool = chip.dataset.tool || null
+      if (newTool !== selectedTool) interviewMode = null
+      selectedTool = newTool
       for (const other of chips) other.classList.toggle('active', other === chip)
+      if (selectedTool === 'interview' && interviewMode === null) {
+        showInterviewModeSelect()
+      }
     })
   }
 }
@@ -219,10 +259,12 @@ export function initChat(): void {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message,
+          message: (selectedTool === 'interview' && interviewMode)
+            ? `[${interviewMode === 'practice' ? '연습모드' : '실전모드'}] ${message}`
+            : message,
           tool: selectedTool,
           profile: { session_id: sessionId, ...profile },
-          history: history.slice(0, -1), // 현재 user 메시지 제외한 이전 기록
+          history: history.slice(0, -1),
         }),
       })
       const data = (await res.json()) as { text: string; tts_text: string; tool: string; label: string }
