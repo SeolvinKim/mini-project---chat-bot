@@ -193,7 +193,11 @@ export function initChat(): void {
   const addMsg = (role: 'user' | 'bot', text: string): void => {
     const div = document.createElement('div')
     div.className = `msg ${role}`
-    div.textContent = text
+    if (role === 'bot' && text.trimStart().startsWith('<')) {
+      div.innerHTML = text
+    } else {
+      div.textContent = text
+    }
     log.appendChild(div)
     log.scrollTop = log.scrollHeight
   }
@@ -222,7 +226,8 @@ export function initChat(): void {
         }),
       })
       const data = (await res.json()) as { text: string; tts_text: string; tool: string; label: string }
-      addMsg('bot', cleanForDisplay(data.text))
+      const isHtml = data.text.trimStart().startsWith('<')
+      addMsg('bot', isHtml ? data.text : cleanForDisplay(data.text))
 
       history.push({ role: 'assistant', content: data.text })
       if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY)
