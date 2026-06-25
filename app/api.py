@@ -1,8 +1,10 @@
 """vtuber 캐릭터(또는 외부 클라이언트)가 호출하는 HTTP API.
 
 - POST /api/chat : 메시지를 알맞은 Tool로 보내 답변 텍스트를 만든다.
-- POST /api/tts  : 답변 텍스트를 OpenAI TTS로 mp3 합성해 돌려준다.
+- POST /api/tts  : 답변 텍스트를 음성(mp3)으로 합성해 돌려준다.
+                   기본은 Azure Speech(한국 여성 음성 + SSML), 실패하면 OpenAI TTS로 폴백.
 - GET  /api/tools: 사용 가능한 Tool 목록(프론트의 선택 UI용).
+- GET  /api/voices: 선택 가능한 한국 여성 음성 후보(프론트 드롭다운용).
 
 설계 메모
 ---------
@@ -24,6 +26,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Callable
+from xml.sax.saxutils import escape, quoteattr
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -60,10 +63,40 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
     "job": ("직무", "진로", "적성", "어떤 일", "무슨 일", "취업 분야", "직업 추천"),
 }
 
-# TTS 모델/보이스는 환경변수로 교체 가능. tts-1 은 실재하는 OpenAI TTS 모델.
-TTS_MODEL = os.getenv("TTS_MODEL", "tts-1")
-TTS_VOICE = os.getenv("TTS_VOICE", "alloy")
-TTS_MAX_CHARS = 4000  # OpenAI TTS 입력 길이 안전 상한
+# ---------------------------------------------------------------------------
+# TTS 설정
+# ---------------------------------------------------------------------------
+# provider 우선순위: 기본은 azure 먼저 시도하고 실패하면 openai로 폴백한다.
+# TTS_PROVIDER=openai 로 두면 순서가 뒤집힌다.
+TTS_PROVIDER = os.getenv("TTS_PROVIDER", "azure").strip().lower()
+TTS_MAX_CHARS = 4000  # 입력 길이 안전 상한
+
+# --- OpenAI TTS ---
+OPENAI_TTS_MODEL = os.getenv("TTS_MODEL", "tts-1")  # tts-1 은 실재하는 OpenAI TTS 모델
+OPENAI_TTS_VOICE = os.getenv("TTS_VOICE", "alloy")
+OPENAI_VOICES = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
+
+# --- Azure Speech TTS ---
+# 키 발급: Azure Portal > "Speech service" 리소스 생성 > 키와 위치(region).
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY", "")
+AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION", "koreacentral")
+AZURE_TTS_VOICE = os.getenv("AZURE_TTS_VOICE", "ko-KR-SunHiNeural")
+# 차분·부드러운 내레이션 톤(요청 SSML 반영). prosody 는 모든 음성에서 동작한다.
+AZURE_TTS_RATE = os.getenv("AZURE_TTS_RATE", "-12%")
+AZURE_TTS_PITCH = os.getenv("AZURE_TTS_PITCH", "-8%")
+# mstts:express-as 스타일은 "지원하는 음성"에서만 동작한다(ko-KR 표준 음성은 대부분 미지원).
+# 미지원 음성에 스타일을 넣으면 합성이 통째로 실패하므로 기본은 비활성(빈 값)으로 둔다.
+AZURE_TTS_STYLE = os.getenv("AZURE_TTS_STYLE", "")
+AZURE_TTS_STYLEDEGREE = os.getenv("AZURE_TTS_STYLEDEGREE", "")
+
+# 프론트 드롭다운/데모용 한국 여성 음성 후보.
+KO_FEMALE_VOICES: tuple[str, ...] = (
+    "ko-KR-SunHiNeural",
+    "ko-KR-JiMinNeural",
+    "ko-KR-SeoHyeonNeural",
+    "ko-KR-SoonBokNeural",
+    "ko-KR-YuJinNeural",
+)
 
 
 def _load_run(tool_key: str) -> Callable[[UserProfile, str], str] | None:
@@ -158,6 +191,117 @@ def _make_tts_text(full: str) -> str:
         return first_sentence(clean)
 
 
+# ---------------------------------------------------------------------------
+# 음성 합성 (Azure 우선, OpenAI 폴백)
+# ---------------------------------------------------------------------------
+def build_ssml(
+    text: str,
+    voice: str,
+    *,
+    style: str = "",
+    styledegree: str = "",
+    rate: str = "",
+    pitch: str = "",
+) -> str:
+    """Azure Speech용 SSML 문자열을 만든다.
+
+    - prosody(rate/pitch)는 모든 음성에서 동작한다.
+    - mstts:express-as(style)는 해당 음성이 지원할 때만 감싼다.
+    - 텍스트는 XML 이스케이프해 SSML 깨짐/인젝션을 막는다.
+    """
+    inner = escape(text)
+    if rate or pitch:
+        attrs = ""
+        if rate:
+            attrs += f" rate={quoteattr(rate)}"
+        if pitch:
+            attrs += f" pitch={quoteattr(pitch)}"
+        inner = f"<prosody{attrs}>{inner}</prosody>"
+    if style:
+        degree = f" styledegree={quoteattr(styledegree)}" if styledegree else ""
+        inner = f"<mstts:express-as style={quoteattr(style)}{degree}>{inner}</mstts:express-as>"
+    return (
+        '<speak version="1.0"'
+        ' xmlns="http://www.w3.org/2001/10/synthesis"'
+        ' xmlns:mstts="https://www.w3.org/2001/mstts"'
+        ' xml:lang="ko-KR">'
+        f"<voice name={quoteattr(voice)}>{inner}</voice>"
+        "</speak>"
+    )
+
+
+def azure_tts(text: str, voice: str | None = None) -> bytes:
+    """Azure Speech로 한국어 음성을 mp3 bytes로 합성한다. 키/리전 없으면 RuntimeError."""
+    if not (AZURE_SPEECH_KEY and AZURE_SPEECH_REGION):
+        raise RuntimeError("AZURE_SPEECH_KEY/AZURE_SPEECH_REGION not set")
+
+    import azure.cognitiveservices.speech as speechsdk
+
+    cfg = speechsdk.SpeechConfig(
+        subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION
+    )
+    cfg.set_speech_synthesis_output_format(
+        speechsdk.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3
+    )
+    # audio_config=None → 스피커로 재생하지 않고 결과를 메모리(bytes)로 받는다.
+    synthesizer = speechsdk.SpeechSynthesizer(speech_config=cfg, audio_config=None)
+    ssml = build_ssml(
+        text,
+        voice or AZURE_TTS_VOICE,
+        style=AZURE_TTS_STYLE,
+        styledegree=AZURE_TTS_STYLEDEGREE,
+        rate=AZURE_TTS_RATE,
+        pitch=AZURE_TTS_PITCH,
+    )
+    result = synthesizer.speak_ssml_async(ssml).get()
+
+    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        return bytes(result.audio_data)
+
+    detail = "unknown"
+    if result.reason == speechsdk.ResultReason.Canceled:
+        cancellation = result.cancellation_details
+        detail = f"{cancellation.reason}: {cancellation.error_details}"
+    raise RuntimeError(f"azure synth failed ({detail})")
+
+
+def openai_tts(text: str, voice: str | None = None) -> bytes:
+    """OpenAI TTS로 음성을 mp3 bytes로 합성한다. 키 없으면 RuntimeError."""
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("OPENAI_API_KEY not set")
+
+    from openai import OpenAI
+
+    selected = voice if voice in OPENAI_VOICES else OPENAI_TTS_VOICE
+    client = OpenAI()
+    with client.audio.speech.with_streaming_response.create(
+        model=OPENAI_TTS_MODEL,
+        voice=selected,
+        input=text[:TTS_MAX_CHARS],
+    ) as response:
+        return response.read()
+
+
+def synthesize(text: str, voice: str | None = None) -> tuple[bytes, str]:
+    """TTS_PROVIDER 순서대로 시도해 (audio_bytes, used_provider)를 반환한다.
+
+    Azure 음성명(ko-KR-*)이 들어오면 Azure에서만 의미가 있으므로 그쪽으로 라우팅한다.
+    모든 provider가 실패하면 마지막 오류 메시지를 합쳐 RuntimeError를 던진다.
+    """
+    order = ["azure", "openai"] if TTS_PROVIDER != "openai" else ["openai", "azure"]
+    errors: list[str] = []
+    for provider in order:
+        try:
+            if provider == "azure":
+                azure_voice = voice if (voice or "").startswith("ko-KR-") else None
+                return azure_tts(text, azure_voice), "azure"
+            openai_voice = voice if voice in OPENAI_VOICES else None
+            return openai_tts(text, openai_voice), "openai"
+        except Exception as error:  # 다음 provider로 폴백
+            errors.append(f"{provider}: {error}")
+    raise RuntimeError("; ".join(errors) or "no tts provider available")
+
+
 app = FastAPI(title="job-prep-chatbot API")
 
 # 개발 단계에서는 모든 origin 허용. 배포 시 vtuber origin으로 좁힌다.
@@ -201,6 +345,7 @@ class ChatOut(BaseModel):
 
 class TTSIn(BaseModel):
     text: str
+    # "ko-KR-SunHiNeural" 같은 Azure 음성명 또는 "alloy" 같은 OpenAI 음성명.
     voice: str | None = None
 
 
@@ -212,6 +357,16 @@ def health() -> dict[str, bool]:
 @app.get("/api/tools")
 def tools() -> list[dict[str, str]]:
     return [{"key": k, "label": label, "icon": icon} for k, _, label, icon in TOOLS]
+
+
+@app.get("/api/voices")
+def voices() -> dict[str, object]:
+    """프론트 드롭다운용: 기본 음성과 한국 여성 음성 후보 목록."""
+    return {
+        "provider": TTS_PROVIDER,
+        "default": AZURE_TTS_VOICE,
+        "candidates": list(KO_FEMALE_VOICES),
+    }
 
 
 @app.post("/api/chat", response_model=ChatOut)
@@ -244,20 +399,15 @@ def tts(body: TTSIn) -> Response:
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not set")
 
-    from openai import OpenAI
-
-    client = OpenAI()
     try:
-        with client.audio.speech.with_streaming_response.create(
-            model=TTS_MODEL,
-            voice=body.voice or TTS_VOICE,
-            input=text[:TTS_MAX_CHARS],
-        ) as response:
-            audio = response.read()
-    except Exception:
-        raise HTTPException(status_code=502, detail="tts failed")
+        audio, provider = synthesize(text[:TTS_MAX_CHARS], body.voice)
+    except Exception as error:
+        # Azure/OpenAI 모두 실패(키 미설정 포함) → 503. 내부 상세는 detail에만.
+        raise HTTPException(status_code=503, detail=str(error))
 
-    return Response(content=audio, media_type="audio/mpeg")
+    return Response(
+        content=audio,
+        media_type="audio/mpeg",
+        headers={"X-TTS-Provider": provider},
+    )
