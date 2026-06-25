@@ -9,35 +9,35 @@
   - 실행: `uv run python app/main.py`
   - 테스트: `uv run python -m pytest`
 - Python 3.11~3.12.
-- API 키: `OPENAI_API_KEY`(라우팅·생성·임베딩 모두). `.env.example` 참고.
+- API 키: `OPENAI_API_KEY`(생성·임베딩). `.env.example` 참고.
 
-## 모델 구조 (2층 + 역할별 모델)
+## Tool 선택 구조 (버튼 기반, 자동 라우팅 없음)
 
 ```
 사용자 입력
   │
   ▼
-[1층 라우팅] 어떤 Tool? (app/main.py: _route_message)
-  │  코드 키워드 우선(_keyword_route) → 명확하면 LLM 생략
-  │  모호하면 라우터 LLM 호출(분류 + 질문 재작성)
+[Tool 선택] 버튼 클릭으로 active_tool 고정 (app/main.py: select_tool)
+  │  메시지 내용과 무관 — 사용자가 명시적으로 고른 Tool만 응답한다.
   ▼
-[2층 대답] 각 Tool이 답을 만드는 방식
+[대답 생성] active_tool의 run(profile, message) 호출
   ├─ certificate : 규칙기반 (LLM 불필요)
-  ├─ cover_letter: 생성 LLM 필요 → get_generation_llm()
-  ├─ interview   : 생성 LLM 필요 → get_generation_llm()
-  └─ job         : 하이브리드 (키워드 + 필요 시 생성 LLM)
+  ├─ cover_letter: 생성 LLM 필요 → get_generation_llm() (미병합)
+  ├─ interview   : 생성 LLM 필요 → get_generation_llm() (미병합)
+  └─ job         : 생성 LLM 필요 → get_generation_llm() (미병합)
 ```
+
+**왜 자동 라우팅을 버렸나:** 이전엔 메시지를 LLM/키워드로 분석해 Tool을 자동 선택했는데, 한 번 정해진 Tool 컨텍스트가 다음 메시지에도 편향을 줘서 **다른 분야 질문이 막히는 락인 문제**가 있었다. 버튼 선택은 매 메시지가 아니라 "다음 버튼 클릭까지" Tool을 고정하므로, 전환은 항상 사용자가 명시적으로 한다.
 
 `core/llm.py` 헬퍼:
 
 | 함수 | 모델 | 용도 |
 |---|---|---|
-| `get_router_llm()` | `gpt-5.4-mini` | 라우팅/분류 (빠르고 저렴, temperature=0) |
 | `get_generation_llm()` | `gpt-5.4` | 콘텐츠 생성 (자소서·면접·직무) |
 | `get_embeddings()` | `text-embedding-3-small` | RAG 임베딩 |
 
-- **생성 Tool은 `get_generation_llm()`을 쓰세요.** 라우팅용 mini 모델로 콘텐츠를 생성하지 마세요(품질 저하).
-- 라우팅은 `app/main.py`가 담당하므로 Tool은 라우팅 LLM을 직접 부를 일이 없습니다.
+- **생성 Tool은 `get_generation_llm()`을 쓰세요.**
+- Tool 선택에는 LLM을 쓰지 않습니다 — `app/main.py`의 버튼이 `active_tool` state를 직접 설정합니다.
 
 ## 구조
 
